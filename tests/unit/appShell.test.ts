@@ -14,5 +14,6 @@ describe('App shell', () => {
 
     expect(wrapper.get('[data-testid="brand"]').text()).toContain('IELTS Pilot')
     expect(wrapper.get('[data-testid="route-view"]').text()).toBe('当前页面')
+    expect(wrapper.get('.skip-link').attributes('href')).toBe('#app-content')
   })
 })
