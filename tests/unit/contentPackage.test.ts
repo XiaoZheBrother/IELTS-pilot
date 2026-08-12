@@ -17,6 +17,17 @@ const validPackage: ContentPackage = {
   note: 'Prepared for IELTS Pilot.', sets: [set],
 }
 
+const validPackageV2 = {
+  ...validPackage,
+  schemaVersion: 2,
+  version: '1.2.0',
+  description: 'A complete authorized practice package.',
+  createdAt: '2026-08-01T00:00:00.000Z',
+  updatedAt: '2026-08-12T00:00:00.000Z',
+  minimumAppVersion: '0.5.0',
+  changelog: 'Adds a source-linked practice set.',
+}
+
 describe('content package validation', () => {
   it('accepts a declarative, licensed package and returns an isolated copy', () => {
     const result = validateContentPackage(validPackage)
@@ -28,12 +39,31 @@ describe('content package validation', () => {
   })
 
   it.each([
-    [{ ...validPackage, schemaVersion: 2 }, 'schemaVersion'],
+    [{ ...validPackage, schemaVersion: 3 }, 'schemaVersion'],
     [{ ...validPackage, license: '' }, 'license'],
     [{ ...validPackage, sets: [{ ...set, questions: [{ ...set.questions[0], sourceRef: { sectionIndex: 4, paragraphIndex: 0 } }] }] }, 'sourceRef'],
     [{ ...validPackage, sets: [{ ...set, passage: { ...set.passage, deck: '<script>alert(1)</script>' } }] }, 'unsafe'],
     [{ ...validPackage, sets: [set, { ...set }] }, 'duplicate'],
   ])('rejects invalid or unsafe content', (candidate, errorFragment) => {
+    const result = validateContentPackage(candidate)
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.errors.join(' ')).toContain(errorFragment)
+  })
+
+  it('normalizes schema version one and accepts a complete schema version two package', () => {
+    const legacy = validateContentPackage(validPackage)
+    const current = validateContentPackage(validPackageV2)
+    expect(legacy.ok && legacy.value.schemaVersion).toBe(2)
+    expect(legacy.ok && legacy.value.version).toBe('1.0.0')
+    expect(current.ok).toBe(true)
+    if (current.ok) expect(current.value.version).toBe('1.2.0')
+  })
+
+  it.each([
+    [{ ...validPackageV2, version: 'latest' }, 'version'],
+    [{ ...validPackageV2, updatedAt: 'yesterday' }, 'updatedAt'],
+    [{ ...validPackageV2, description: '' }, 'description'],
+  ])('rejects incomplete version two metadata', (candidate, errorFragment) => {
     const result = validateContentPackage(candidate)
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.errors.join(' ')).toContain(errorFragment)

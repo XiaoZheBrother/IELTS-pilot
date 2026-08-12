@@ -1,5 +1,5 @@
 import { createPracticeRepository } from '../../src/storage/practiceRepository'
-import type { Attempt, PracticeDraft, PracticeSet } from '../../src/domain/models'
+import type { Attempt, AuthorPackageDraft, InstalledContentPackage, PassageAnnotation, PracticeDraft, PracticeSet, ReaderPreferences } from '../../src/domain/models'
 
 function createMemoryStorage(): Storage {
   const values = new Map<string, string>()
@@ -14,7 +14,7 @@ const attempt: Attempt = {
 }
 const importedSet = { id: 'imported-set', title: 'Imported set' } as PracticeSet
 
-describe('practice repository v2', () => {
+describe('practice repository v3', () => {
   it('persists drafts, attempts and imported sets across instances', () => {
     const storage = createMemoryStorage()
     const first = createPracticeRepository(storage)
@@ -67,6 +67,52 @@ describe('practice repository v2', () => {
     const repository = createPracticeRepository(storage)
     expect(repository.listAttempts()).toEqual([])
     expect(repository.getDraft('shade-networks')).toBeNull()
+  })
+
+  it('persists reader preferences, annotations, favorites and mastered errors', () => {
+    const repository = createPracticeRepository(createMemoryStorage())
+    const preferences: ReaderPreferences = { theme: 'sepia', fontScale: 1.1, lineHeight: 1.9, readingWidth: 760, defaultTimedPractice: false }
+    const annotation: PassageAnnotation = {
+      id: 'annotation-1', setId: 'shade-networks', sectionIndex: 0, paragraphIndex: 0,
+      startOffset: 0, endOffset: 5, selectedText: 'Shade', color: 'sage', note: 'Key concept',
+      createdAt: '2026-08-12T00:00:00.000Z', updatedAt: '2026-08-12T00:00:00.000Z',
+    }
+
+    repository.savePreferences(preferences)
+    repository.saveAnnotation(annotation)
+    repository.toggleFavoriteSet('shade-networks')
+    repository.toggleFavoriteQuestion('shade_q1')
+    repository.setErrorMastered('attempt-1:shade_q1', true)
+
+    expect(repository.getPreferences()).toEqual(preferences)
+    expect(repository.listAnnotations('shade-networks')).toEqual([annotation])
+    expect(repository.listFavoriteSetIds()).toEqual(['shade-networks'])
+    expect(repository.listFavoriteQuestionIds()).toEqual(['shade_q1'])
+    expect(repository.listMasteredErrorKeys()).toEqual(['attempt-1:shade_q1'])
+    repository.removeAnnotation(annotation.id)
+    expect(repository.listAnnotations()).toEqual([])
+  })
+
+  it('stores installed packages and author drafts and exports a version three backup', () => {
+    const repository = createPracticeRepository(createMemoryStorage())
+    const installed: InstalledContentPackage = {
+      packageId: 'sample-pack', name: 'Sample pack', version: '1.0.0', owner: 'Example Author',
+      license: 'CC-BY-4.0', note: 'Authorized sample.', installedAt: '2026-08-12T00:00:00.000Z',
+      digest: 'sha256:test', sets: [importedSet],
+    }
+    const authorDraft: AuthorPackageDraft = { id: 'draft-1', name: 'My pack', updatedAt: '2026-08-12T00:00:00.000Z', package: { name: 'My pack' } }
+
+    repository.saveInstalledPackage(installed)
+    repository.saveAuthorDraft(authorDraft)
+
+    expect(repository.getInstalledPackage('sample-pack')).toEqual(installed)
+    expect(repository.listImportedSets()).toEqual([importedSet])
+    expect(repository.listAuthorDrafts()).toEqual([authorDraft])
+    expect(JSON.parse(repository.exportBackup()).version).toBe(3)
+    repository.removeInstalledPackage('sample-pack')
+    repository.removeAuthorDraft('draft-1')
+    expect(repository.listInstalledPackages()).toEqual([])
+    expect(repository.listAuthorDrafts()).toEqual([])
   })
 })
 

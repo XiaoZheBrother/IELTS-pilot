@@ -14,6 +14,8 @@ export type QuestionType =
 
 export type Difficulty = 'foundation' | 'medium' | 'advanced'
 export type AcceptedAnswer = string | string[]
+export type ReaderTheme = 'paper' | 'sepia' | 'night'
+export type AnnotationColor = 'signal' | 'sage' | 'amber'
 
 export interface SourceReference {
   sectionIndex: number
@@ -167,6 +169,7 @@ export interface PracticeDraft {
   remainingSeconds: number
   updatedAt: string
   flags?: string[]
+  isPaused?: boolean
 }
 
 export interface Attempt {
@@ -179,5 +182,49 @@ export interface Attempt {
   submittedAt: string
   durationSeconds: number
   submissionReason: 'manual' | 'time-expired'
+}
+
+export interface ReaderPreferences {
+  theme: ReaderTheme
+  fontScale: number
+  lineHeight: number
+  readingWidth: number
+  defaultTimedPractice: boolean
+}
+
+export interface PassageAnnotation {
+  id: string
+  setId: string
+  sectionIndex: number
+  paragraphIndex: number
+  startOffset: number
+  endOffset: number
+  selectedText: string
+  color: AnnotationColor
+  note: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface InstalledContentPackage {
+  packageId: string
+  name: string
+  version: string
+  owner: string
+  license: string
+  note: string
+  description?: string
+  sourceUrl?: string
+  changelog?: string
+  digest: string
+  installedAt: string
+  sets: PracticeSet[]
+}
+
+export interface AuthorPackageDraft {
+  id: string
+  name: string
+  updatedAt: string
+  package: Record<string, unknown>
 }
 
