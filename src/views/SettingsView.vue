@@ -2,11 +2,14 @@
 import { reactive, ref } from 'vue'
 import type { ReaderPreferences, ReaderTheme } from '../domain/models'
 import { applyReaderPreferences } from '../composables/useReaderPreferences'
+import { installDemoProfile } from '../domain/demoProfile'
 import { createBrowserPracticeRepository } from '../storage/practiceRepository'
+import { createBrowserWritingRepository } from '../storage/writingRepository'
 
 const repository = createBrowserPracticeRepository()
 const form = reactive<ReaderPreferences>({ ...repository.getPreferences() })
 const feedback = ref('')
+const demoConfirmationOpen = ref(false)
 
 const themes: Array<{ id: ReaderTheme; name: string; description: string }> = [
   { id: 'paper', name: '纸张', description: '明亮中性，适合日间专注。' },
@@ -29,6 +32,12 @@ function save(): void {
 function reset(): void {
   Object.assign(form, { theme: 'paper', fontScale: 1, lineHeight: 1.85, readingWidth: 850, defaultTimedPractice: true })
   preview()
+}
+
+function confirmDemoProfile(): void {
+  const result = installDemoProfile(repository, createBrowserWritingRepository())
+  demoConfirmationOpen.value = false
+  feedback.value = result.message
 }
 </script>
 
@@ -67,6 +76,19 @@ function reset(): void {
       <section class="settings-section settings-section--compact" aria-labelledby="practice-title">
         <header><p class="section-kicker">03 · Practice</p><h2 id="practice-title">练习默认项</h2></header>
         <label class="toggle-setting"><span><strong>默认开启计时</strong><small>新专项练习进入后自动倒计时，练习中仍可暂停。</small></span><input data-testid="default-timed" v-model="form.defaultTimedPractice" type="checkbox" /></label>
+      </section>
+
+      <section class="settings-section settings-section--compact" aria-labelledby="demo-title">
+        <header><p class="section-kicker">04 · Walkthrough</p><h2 id="demo-title">产品演示数据</h2></header>
+        <div class="demo-profile-control">
+          <p>一键生成可重复使用的本地样例：3 次阅读记录、1 份草稿、收藏与批注，以及 1 份写作辅助报告。不会联网，也不会删除你的现有数据。</p>
+          <div v-if="demoConfirmationOpen" class="demo-profile-confirm" role="alert">
+            <p>将写入 3 次阅读记录和 1 份写作报告；使用固定编号，重复安装只会刷新样例。</p>
+            <button type="button" @click="demoConfirmationOpen = false">取消</button>
+            <button data-testid="confirm-demo-profile" class="signal-action" type="button" @click="confirmDemoProfile">确认安装</button>
+          </div>
+          <button v-else data-testid="install-demo-profile" type="button" @click="demoConfirmationOpen = true">准备演示数据</button>
+        </div>
       </section>
 
       <footer class="settings-actions"><p aria-live="polite">{{ feedback }}</p><button type="button" @click="reset">恢复默认</button><button data-testid="save-preferences" class="signal-action" type="button" @click="save">保存设置</button></footer>
