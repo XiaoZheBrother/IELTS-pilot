@@ -54,7 +54,7 @@ async function evaluate(config, value, requestId) {
     const upstream = await fetch(config.endpoint, {
       method: 'POST', signal: controller.signal,
       headers: { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json', 'X-Client-Request-Id': requestId },
-      body: JSON.stringify({ model: config.model, messages, temperature: 0.15, max_tokens: 2_800, response_format: { type: 'json_object' } }),
+      body: JSON.stringify({ model: config.model, messages, thinking: { type: 'disabled' }, temperature: 0.15, max_tokens: 2_800, response_format: { type: 'json_object' } }),
     })
     if (!upstream.ok) {
       const code = upstream.status === 429 ? 'UPSTREAM_RATE_LIMIT' : upstream.status >= 500 ? 'UPSTREAM_UNAVAILABLE' : 'UPSTREAM_REJECTED'

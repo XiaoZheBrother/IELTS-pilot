@@ -38,14 +38,18 @@ describe('AI writing production gateway', () => {
   let baseUrl = ''
   let output = () => ''
   let observedAuthorization = ''
+  let observedBody: Record<string, unknown> = {}
 
   beforeAll(async () => {
     directory = await mkdtemp(join(tmpdir(), 'ielts-pilot-ai-'))
     const dist = join(directory, 'dist')
     await import('node:fs/promises').then(({ mkdir }) => mkdir(dist))
     await writeFile(join(dist, 'index.html'), '<!doctype html><title>IELTS Pilot Production</title><main>app</main>', 'utf8')
-    upstream = createServer((request, response) => {
+    upstream = createServer(async (request, response) => {
       observedAuthorization = String(request.headers.authorization ?? '')
+      const chunks: Buffer[] = []
+      for await (const chunk of request) chunks.push(Buffer.from(chunk))
+      observedBody = JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>
       response.writeHead(200, { 'Content-Type': 'application/json' })
       response.end(JSON.stringify({ model: 'fixture-model', id: 'upstream-1', choices: [{ message: { content: '{"summary":"fixture"}' } }], usage: { total_tokens: 42 } }))
     })
@@ -87,6 +91,7 @@ describe('AI writing production gateway', () => {
     expect(response.status).toBe(200)
     expect(await response.json()).toMatchObject({ content: '{"summary":"fixture"}', model: 'fixture-model', usage: { totalTokens: 42 } })
     expect(observedAuthorization).toBe('Bearer integration-secret-value')
+    expect(observedBody).toMatchObject({ thinking: { type: 'disabled' } })
     expect(output()).not.toContain(observedAuthorization)
   })
 })

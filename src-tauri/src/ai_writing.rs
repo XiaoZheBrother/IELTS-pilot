@@ -88,6 +88,7 @@ pub async fn evaluate_writing(payload: EvaluateWritingPayload) -> Result<Evaluat
         .json(&json!({
             "model": payload.model,
             "messages": payload.messages,
+            "thinking": { "type": "disabled" },
             "temperature": 0.15,
             "max_tokens": 2800,
             "response_format": { "type": "json_object" }

@@ -64,6 +64,7 @@ describe('desktop packaging configuration', () => {
     expect(rust).toContain('ai_writing::evaluate_writing')
     expect(adapter).toContain('#[tauri::command]')
     expect(adapter).toContain('https')
+    expect(adapter).toContain('"thinking": { "type": "disabled" }')
     expect(`${cargo}\n${rust}\n${adapter}`).not.toMatch(/ark-[a-z0-9]{20,}/i)
     expect(`${cargo}\n${rust}\n${adapter}`).not.toContain('D:\\Users\\yuqi.chen')
   })
