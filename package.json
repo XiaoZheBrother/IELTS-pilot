@@ -1,7 +1,7 @@
 {
   "name": "ielts-pilot",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.6.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
@@ -14,9 +14,12 @@
     "desktop:dev": "tauri dev",
     "desktop:check": "npm run check && cargo check --manifest-path src-tauri/Cargo.toml",
     "desktop:build": "tauri build --bundles nsis",
+    "desktop:release": "tauri build --bundles nsis --config src-tauri/tauri.release.conf.json",
     "tauri": "tauri"
   },
   "dependencies": {
+    "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-updater": "^2.10.1",
     "vue": "^3.5.18",
     "vue-router": "^4.5.1"
   },

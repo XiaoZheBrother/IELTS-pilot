@@ -1,10 +1,10 @@
 # IELTS Pilot
 
-一个本地优先的 IELTS 阅读练习工作台。v0.5 同时提供浏览器版与 Windows 桌面版，覆盖题库筛选、限时作答、批注、自动保存、本地评分、原文定位、错题强化、收藏、统计和本地题库制作。
+一个本地优先的 IELTS 阅读练习工作台。v0.6 同时提供浏览器版与 Windows 桌面版，并加入签名应用内更新与安全发布流水线。
 
 > 本项目不是 IELTS 官方产品，不包含官方真题，也不提供官方成绩。
 
-## v0.5 功能清单
+## v0.6 功能清单
 
 - 5 篇项目原创英文文章，共 54 道题；其中前 3 篇组成 40 题、60 分钟完整阅读模考
 - 12 种题型：单选、多选、T/F/NG、Y/N/NG、标题配对、信息配对、特征配对、句尾配对、简答、句子填空、摘要选词、图示填空
@@ -20,6 +20,7 @@
 - 内容包 v2 的校验、预览、SHA-256 摘要、安装、升级、冲突阻止和卸载
 - 本地题库编辑器，可编辑文章、来源、12 种题型、答案、解析和原文定位，支持草稿与 JSON 导出
 - Tauri 2 Windows 桌面壳与 NSIS `Setup.exe`，以及 GitHub Actions 构建工作流
+- 桌面更新中心、Tauri updater 强制签名校验、下载进度与显式安装确认
 
 ## 快速启动浏览器版
 
@@ -49,6 +50,8 @@ npm run desktop:build
 产物位于 `src-tauri/target/release/bundle/nsis/`。安装器按当前用户安装，不需要管理员权限。当前开源构建没有商业代码签名，Windows SmartScreen 可能显示“未知发布者”；请只从本仓库 Release 或自己校验过的源码构建。
 
 推送 `v*` 标签也会触发 `.github/workflows/windows-release.yml`，验证 Web 应用后生成草稿 Release 和 NSIS 安装器。
+
+普通安装器使用 `npm run desktop:build`；包含 updater `.sig` 的发布构建使用 `npm run desktop:release`，并要求在环境变量中提供项目 updater 私钥。密钥与可选 Authenticode 配置见 [Windows 安全发布文档](docs/releasing-windows.md)。
 
 ## 评分机制
 

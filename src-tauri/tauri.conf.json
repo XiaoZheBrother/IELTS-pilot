@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "IELTS Pilot",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "identifier": "com.xiaozhebrother.ieltspilot",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -30,6 +30,7 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
+    "createUpdaterArtifacts": false,
     "publisher": "XiaoZheBrother",
     "shortDescription": "Local-first IELTS reading practice studio",
     "longDescription": "IELTS Pilot provides local reading practice, review, annotations, error recovery and content package authoring.",
@@ -37,6 +38,17 @@
       "nsis": {
         "installMode": "currentUser",
         "displayLanguageSelector": false
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNGRTkwNTk1Rjc4RTlFMgpSV1RpNlhoZFdWRCtBNTVITnpUQXZvTXdBYTVKb0VieldGMUVtaDVLUFVVbDI3WmtvcXhKVE00Qwo=",
+      "endpoints": [
+        "https://github.com/XiaoZheBrother/IELTS-pilot/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
       }
     }
   }

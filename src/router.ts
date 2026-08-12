@@ -10,6 +10,7 @@ export const router = createRouter({
     { path: '/errors', name: 'errors', component: () => import('./views/ErrorBookView.vue') },
     { path: '/favorites', name: 'favorites', component: () => import('./views/FavoritesView.vue') },
     { path: '/settings', name: 'settings', component: () => import('./views/SettingsView.vue') },
+    { path: '/updates', name: 'updates', component: () => import('./views/UpdatesView.vue') },
     { path: '/about', name: 'about', component: () => import('./views/AboutView.vue') },
     { path: '/library/packages', name: 'packages', component: () => import('./views/PackageManagerView.vue') },
     { path: '/library/editor', name: 'package-editor', component: () => import('./views/PackageEditorView.vue') },

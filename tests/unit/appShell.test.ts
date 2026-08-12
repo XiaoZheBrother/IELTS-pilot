@@ -12,6 +12,7 @@ describe('App shell', () => {
       { path: '/favorites', name: 'favorites', component: empty },
       { path: '/analytics', name: 'analytics', component: empty },
       { path: '/settings', name: 'settings', component: empty },
+      { path: '/updates', name: 'updates', component: empty },
       { path: '/about', name: 'about', component: empty },
     ] })
     await router.push('/')
@@ -23,6 +24,7 @@ describe('App shell', () => {
     expect(wrapper.get('nav').text()).toContain('错题本')
     expect(wrapper.get('nav').text()).toContain('收藏')
     expect(wrapper.get('[data-testid="utility-nav"]').text()).toContain('设置')
+    expect(wrapper.get('[data-testid="utility-nav"]').text()).toContain('更新')
     expect(wrapper.get('.skip-link').attributes('href')).toBe('#app-content')
   })
 })
