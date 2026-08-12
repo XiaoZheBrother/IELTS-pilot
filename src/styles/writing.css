@@ -1,0 +1,160 @@
+.writing-page, .writing-report { padding-top: 70px; padding-bottom: 120px; }
+.writing-intro, .writing-report-hero { display: grid; grid-template-columns: 1.25fr .75fr; gap: 64px; align-items: end; padding-bottom: 42px; border-bottom: 1px solid var(--line-strong); }
+.writing-intro h1, .writing-report-hero h1 { margin: 12px 0 0; font-size: clamp(54px, 7vw, 96px); font-weight: 750; letter-spacing: -.075em; line-height: .9; }
+.writing-intro__note { align-self: end; max-width: 580px; padding-left: 24px; border-left: 3px solid var(--signal); }
+.writing-intro__note strong { color: var(--signal-dark); font-size: 12px; }
+.writing-intro__note p { margin: 10px 0 0; color: var(--ink-soft); line-height: 1.75; }
+.writing-task-switcher { display: grid; grid-template-columns: 1fr 1fr; margin: 34px 0; border: 1px solid var(--line-strong); }
+.writing-task-switcher button { display: grid; min-height: 130px; grid-template-columns: 50px 1fr auto; gap: 5px 18px; align-content: center; padding: 23px 26px; border: 0; background: var(--paper-bright); text-align: left; }
+.writing-task-switcher button + button { border-left: 1px solid var(--line-strong); }
+.writing-task-switcher button.active { background: var(--signal-soft); box-shadow: inset 0 3px 0 var(--signal); }
+.writing-task-switcher span { grid-row: 1 / span 3; color: var(--signal); font: 400 28px/1 var(--font-reading); }
+.writing-task-switcher small { color: var(--signal); font-size: 9px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+.writing-task-switcher strong { grid-column: 2; font-size: 19px; }
+.writing-task-switcher i { grid-column: 3; grid-row: 2; color: var(--ink-soft); font-size: 9px; font-style: normal; font-variant-numeric: tabular-nums; }
+.writing-workspace { display: grid; grid-template-columns: minmax(360px, 5fr) minmax(520px, 7fr); border: 1px solid var(--line-strong); background: var(--paper-bright); }
+.writing-brief { min-width: 0; padding: 34px; border-right: 1px solid var(--line-strong); background: var(--paper-muted); }
+.writing-brief h2, .writing-editor-panel h2 { margin: 8px 0 0; font-size: 34px; letter-spacing: -.045em; }
+.writing-prompt { margin: 40px 0 18px; color: var(--ink); font: 400 18px/1.75 var(--font-reading); }
+.writing-instructions { padding: 17px 0; border-block: 1px solid var(--line); color: var(--ink-soft); font-size: 11px; line-height: 1.7; }
+.writing-chart { padding: 21px; margin: 28px 0; background: var(--paper-bright); box-shadow: var(--shadow-border); }
+.writing-chart figcaption { display: flex; align-items: baseline; justify-content: space-between; gap: 15px; padding-bottom: 17px; border-bottom: 1px solid var(--line); }
+.writing-chart figcaption strong { font-size: 13px; }
+.writing-chart figcaption span { color: var(--ink-soft); font-size: 9px; }
+.chart-series { display: grid; min-height: 100px; grid-template-columns: 88px repeat(3, 1fr); align-items: end; gap: 10px; padding-top: 15px; border-bottom: 1px solid var(--line); }
+.chart-series > span { align-self: center; font-size: 10px; font-weight: 700; }
+.chart-series > div { position: relative; display: grid; height: 72px; align-items: end; grid-template-rows: 1fr auto; justify-items: center; }
+.chart-series i { width: 18px; min-height: 4px; background: var(--signal); }
+.chart-series b { position: absolute; top: 0; color: var(--ink); font-size: 9px; font-variant-numeric: tabular-nums; }
+.chart-series small { margin-top: 5px; color: var(--ink-soft); font-size: 8px; }
+.writing-focus { display: flex; flex-wrap: wrap; gap: 8px; margin: 25px 0; }
+.writing-focus span { padding: 7px 9px; background: var(--sage); color: var(--sage-strong); font-size: 9px; font-weight: 800; }
+.writing-brief > footer { display: grid; gap: 7px; padding-top: 22px; border-top: 1px solid var(--line-strong); }
+.writing-brief > footer span, .writing-brief > footer small { color: var(--ink-soft); font-size: 9px; line-height: 1.6; }
+.writing-editor-panel { display: flex; min-width: 0; min-height: 800px; flex-direction: column; padding: 34px; }
+.writing-editor-panel > header { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; }
+.writing-editor-panel dl { display: flex; gap: 24px; margin: 0; }
+.writing-editor-panel dl div { min-width: 48px; text-align: right; }
+.writing-editor-panel dt { color: var(--ink-soft); font-size: 8px; }
+.writing-editor-panel dd { margin: 5px 0 0; font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.writing-editor-panel textarea { width: 100%; min-height: 510px; flex: 1; padding: 26px 4px; border: 0; border-bottom: 1px solid var(--line-strong); background: transparent; color: var(--ink); font: 400 17px/1.85 var(--font-reading); resize: vertical; outline: 0; }
+.writing-editor-panel textarea:focus { box-shadow: inset 0 -3px 0 var(--signal); }
+.writing-editor-footer { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 18px 0; }
+.writing-editor-footer > p { min-width: 190px; margin: 0; color: var(--error); font-size: 10px; }
+.writing-editor-footer > p.ready { color: var(--sage-strong); }
+.writing-editor-footer > p i { display: block; width: 100%; height: 3px; margin-top: 8px; background: var(--line); }
+.writing-editor-footer > p b { display: block; height: 100%; background: currentColor; transition-property: width; transition-duration: 180ms; }
+.writing-editor-footer > div { display: flex; gap: 8px; }
+.desktop-ai-config { padding: 18px; margin: 0 0 18px; background: var(--paper); box-shadow: var(--shadow-border); }
+.desktop-ai-config summary { min-height: 44px; cursor: pointer; font-weight: 800; }
+.desktop-ai-config p { color: var(--ink-soft); font-size: 10px; }
+.desktop-ai-config label { display: grid; grid-template-columns: 130px 1fr; align-items: center; gap: 14px; margin-top: 9px; }
+.desktop-ai-config input { min-height: 42px; padding: 0 10px; border: 1px solid var(--line-strong); background: var(--paper-bright); color: var(--ink); }
+.writing-message { min-height: 36px; margin: 0; color: var(--ink-soft); font-size: 10px; line-height: 1.6; }
+.writing-message--error { color: var(--error); font-weight: 700; }
+.writing-submit { width: 100%; min-height: 56px; justify-content: space-between; }
+.writing-history { margin-top: 70px; }
+.writing-history-list { border-top: 1px solid var(--line-strong); }
+.writing-history-list a { display: grid; min-height: 74px; grid-template-columns: 1fr 220px 110px 20px; align-items: center; gap: 20px; border-bottom: 1px solid var(--line); }
+.writing-history-list time { color: var(--ink-soft); font-size: 10px; }
+.writing-history-list strong { color: var(--signal); font-variant-numeric: tabular-nums; }
+.writing-consent-backdrop { position: fixed; z-index: 80; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(15, 18, 16, .56); backdrop-filter: blur(8px); }
+.writing-consent-backdrop > section { width: min(610px, 100%); padding: 36px; background: var(--paper-bright); box-shadow: 0 24px 80px rgba(0, 0, 0, .28); }
+.writing-consent-backdrop h2 { margin: 8px 0 20px; font-size: 36px; }
+.writing-consent-backdrop > section > p:not(.section-kicker) { color: var(--ink-soft); line-height: 1.8; }
+.writing-consent-backdrop dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; padding: 18px 0; margin: 25px 0; border-block: 1px solid var(--line); }
+.writing-consent-backdrop dt { color: var(--ink-soft); font-size: 9px; }
+.writing-consent-backdrop dd { margin: 6px 0 0; font-weight: 800; }
+.writing-consent-backdrop > section > div { display: flex; justify-content: flex-end; gap: 8px; }
+
+.writing-report-hero { grid-template-columns: 1fr auto; }
+.writing-report-hero > div:first-child > p:last-child { margin: 20px 0 0; color: var(--ink-soft); font-size: 16px; }
+.writing-overall { display: grid; min-width: 260px; justify-items: end; padding-left: 45px; border-left: 1px solid var(--line-strong); }
+.writing-overall span, .writing-overall small { color: var(--ink-soft); font-size: 9px; }
+.writing-overall strong { color: var(--signal); font-size: 86px; letter-spacing: -.08em; line-height: 1; font-variant-numeric: tabular-nums; }
+.writing-report-summary { display: grid; grid-template-columns: 230px 1fr; gap: 50px; padding: 40px 0; border-bottom: 1px solid var(--line-strong); }
+.writing-report-summary h2 { margin: 6px 0 0; font-size: 29px; }
+.writing-report-summary > p { max-width: 780px; margin: 0; font: 400 19px/1.75 var(--font-reading); }
+.writing-rubric { display: grid; grid-template-columns: 1fr 1fr; margin: 46px 0; border: 1px solid var(--line-strong); }
+.writing-rubric article { min-height: 210px; padding: 28px; }
+.writing-rubric article:nth-child(odd) { border-right: 1px solid var(--line-strong); }
+.writing-rubric article:nth-child(-n+2) { border-bottom: 1px solid var(--line-strong); }
+.writing-rubric header { display: flex; align-items: baseline; justify-content: space-between; }
+.writing-rubric header span { font-size: 14px; font-weight: 800; }
+.writing-rubric header strong { color: var(--signal); font-size: 30px; font-variant-numeric: tabular-nums; }
+.rubric-scale { height: 5px; margin: 24px 0; background: var(--line); }
+.rubric-scale i { display: block; height: 100%; background: var(--signal); }
+.writing-rubric p { margin: 0; color: var(--ink-soft); line-height: 1.75; }
+.writing-action-grid { display: grid; grid-template-columns: 1fr 1fr; border-block: 1px solid var(--line-strong); }
+.writing-action-grid article { min-height: 280px; padding: 35px; }
+.writing-action-grid article + article { border-left: 1px solid var(--line-strong); background: var(--signal-soft); }
+.writing-action-grid h2 { font-size: 28px; }
+.writing-action-grid ol { padding-left: 22px; margin: 28px 0 0; }
+.writing-action-grid li { padding: 7px 0 7px 9px; line-height: 1.6; }
+.writing-evidence { margin: 70px 0; }
+.writing-evidence > article { display: grid; grid-template-columns: 55px minmax(300px, 1fr) 1fr; gap: 30px; padding: 30px 0; border-bottom: 1px solid var(--line); }
+.writing-evidence > article > span { color: var(--signal); font-size: 12px; font-variant-numeric: tabular-nums; }
+.writing-evidence blockquote { margin: 0; font: italic 500 20px/1.65 var(--font-reading); }
+.writing-evidence article small { color: var(--signal); font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.writing-evidence article p { margin: 8px 0 18px; color: var(--ink-soft); line-height: 1.7; }
+.writing-evidence article strong { font-size: 10px; }
+.writing-submission-copy { display: grid; grid-template-columns: 240px 1fr; gap: 45px; padding: 36px 0; border-block: 1px solid var(--line-strong); }
+.writing-submission-copy h2 { font-size: 28px; }
+.writing-submission-copy pre { margin: 0; white-space: pre-wrap; color: var(--ink); font: 400 16px/1.85 var(--font-reading); }
+.writing-report-meta { padding: 42px; margin-top: 52px; background: var(--paper-bright); box-shadow: var(--shadow-border); }
+.writing-report-meta dl { display: grid; grid-template-columns: repeat(5, 1fr); gap: 24px; margin: 0; }
+.writing-report-meta dt { color: var(--ink-soft); font-size: 9px; }
+.writing-report-meta dd { overflow: hidden; margin: 8px 0 0; font-size: 11px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.writing-report-meta p { max-width: 80ch; margin: 35px 0; color: var(--ink-soft); line-height: 1.7; }
+.writing-report-missing { padding-top: 120px; }
+.writing-report-missing h1 { font-size: 58px; }
+
+@media (max-width: 1050px) {
+  .writing-workspace { grid-template-columns: minmax(320px, 4fr) minmax(450px, 6fr); }
+  .writing-brief, .writing-editor-panel { padding: 26px; }
+  .writing-report-meta dl { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 820px) {
+  .writing-page, .writing-report { padding-top: 38px; padding-bottom: 105px; }
+  .writing-intro, .writing-report-hero, .writing-workspace, .writing-report-summary, .writing-submission-copy { display: block; }
+  .writing-intro__note { margin-top: 35px; }
+  .writing-task-switcher { grid-template-columns: 1fr; }
+  .writing-task-switcher button + button { border-top: 1px solid var(--line-strong); border-left: 0; }
+  .writing-brief { border-right: 0; border-bottom: 1px solid var(--line-strong); }
+  .writing-editor-panel { min-height: auto; }
+  .writing-editor-panel textarea { min-height: 520px; }
+  .writing-overall { justify-items: start; padding: 30px 0 0; margin-top: 35px; border-top: 1px solid var(--line-strong); border-left: 0; }
+  .writing-report-summary > p, .writing-submission-copy pre { margin-top: 24px; }
+  .writing-evidence > article { grid-template-columns: 40px 1fr; }
+  .writing-evidence > article > div { grid-column: 2; }
+  .writing-history-list a { grid-template-columns: 1fr auto; gap: 8px 20px; padding: 15px 0; }
+  .writing-history-list time { grid-row: 2; }
+  .writing-history-list i { display: none; }
+}
+
+@media (max-width: 560px) {
+  .writing-intro h1, .writing-report-hero h1 { font-size: 52px; }
+  .writing-task-switcher i { grid-column: 2; grid-row: auto; }
+  .writing-editor-panel > header, .writing-editor-footer { display: block; }
+  .writing-editor-panel dl { justify-content: space-between; margin-top: 22px; }
+  .writing-editor-panel dl div { text-align: left; }
+  .writing-editor-footer > div { margin-top: 18px; }
+  .writing-editor-footer button { flex: 1; }
+  .writing-rubric, .writing-action-grid { grid-template-columns: 1fr; }
+  .writing-rubric article:nth-child(odd), .writing-action-grid article + article { border-right: 0; border-left: 0; }
+  .writing-rubric article { border-bottom: 1px solid var(--line-strong); }
+  .writing-rubric article:last-child { border-bottom: 0; }
+  .writing-evidence > article { display: block; }
+  .writing-evidence blockquote, .writing-evidence > article > div { margin-top: 16px; }
+  .writing-report-meta { padding: 25px; }
+  .writing-report-meta dl { grid-template-columns: 1fr 1fr; }
+  .writing-consent-backdrop > section { padding: 26px; }
+  .writing-consent-backdrop dl { grid-template-columns: 1fr; }
+  .desktop-ai-config label { display: block; }
+  .desktop-ai-config input { width: 100%; margin-top: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .writing-editor-footer > p b { transition-duration: 0ms; }
+}

@@ -11,6 +11,7 @@ describe('App shell', () => {
       { path: '/errors', name: 'errors', component: empty },
       { path: '/favorites', name: 'favorites', component: empty },
       { path: '/analytics', name: 'analytics', component: empty },
+      { path: '/writing', name: 'writing', component: empty },
       { path: '/settings', name: 'settings', component: empty },
       { path: '/updates', name: 'updates', component: empty },
       { path: '/sync', name: 'sync', component: empty },
@@ -21,6 +22,7 @@ describe('App shell', () => {
     await router.isReady()
     const wrapper = mount(App, { global: { plugins: [router] } })
     expect(wrapper.get('[data-testid="brand"]').text()).toContain('IELTS PILOT')
+    expect(wrapper.get('a[href="/writing"]').text()).toBe('写作')
     expect(wrapper.get('[data-testid="route-view"]').text()).toBe('当前页面')
     expect(wrapper.get('nav').text()).toContain('题库')
     expect(wrapper.get('nav').text()).toContain('错题本')
