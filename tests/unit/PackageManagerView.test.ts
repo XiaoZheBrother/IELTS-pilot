@@ -18,6 +18,7 @@ const packageV2Two = {
 
 type PackageManagerVm = {
   loadPackageFiles: (files: File[]) => Promise<void>
+  batch: Array<{ status: string; content?: { integrity?: string } }>
 }
 
 describe('PackageManagerView', () => {
@@ -65,5 +66,23 @@ describe('PackageManagerView', () => {
       ])
     })
     expect(wrapper.text()).toContain('已安装 2 个内容包，跳过 1 个')
+  })
+
+  it('keeps an unexpected install failure visible and disables retry', async () => {
+    const wrapper = mount(PackageManagerView, { global: { stubs: { RouterLink: true } } })
+    const vm = wrapper.vm as unknown as PackageManagerVm
+    await vm.loadPackageFiles([
+      new File([JSON.stringify(packageV2)], 'one.json', { type: 'application/json' }),
+      new File([JSON.stringify(packageV2Two)], 'two.json', { type: 'application/json' }),
+    ])
+    vm.batch[0]!.content!.integrity = `sha256:${'0'.repeat(64)}`
+
+    await wrapper.get('[data-testid="confirm-package-batch-install"]').trigger('click')
+    await vi.waitFor(() => {
+      expect(createBrowserPracticeRepository().getInstalledPackage('test-package-two')).not.toBeNull()
+    })
+
+    expect(wrapper.text()).toContain('内容包完整性校验失败')
+    expect(wrapper.get('[data-testid="confirm-package-batch-install"]').attributes('disabled')).toBeDefined()
   })
 })

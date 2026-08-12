@@ -79,8 +79,12 @@ async function confirmBatchInstall(): Promise<void> {
     const result = await installPackageBatch(packageEntries.value, installed.value, bundledSetIds)
     repository.replaceInstalledPackages(result.packages)
     installed.value = repository.listInstalledPackages()
-    const failedNames = new Set(result.failures.map(({ fileName }) => fileName))
-    batch.value = batch.value.filter((entry) => entry.status !== 'ready' || failedNames.has(entry.fileName))
+    const failures = new Map(result.failures.map(({ fileName, error }) => [fileName, error]))
+    batch.value = batch.value.flatMap((entry): ViewBatchEntry[] => {
+      if (entry.status !== 'ready') return [entry]
+      const error = failures.get(entry.fileName)
+      return error ? [{ ...entry, status: 'blocked', error }] : []
+    })
     feedback.value = `已安装 ${result.installedCount} 个内容包，跳过 ${total - result.installedCount} 个。`
   } finally {
     isInstalling.value = false
