@@ -1,6 +1,10 @@
-import type { PracticeSet } from '../domain/models'
+import type { PracticeSet, ReadingQuestion, SourceReference } from '../domain/models'
 
-export const practiceSets: PracticeSet[] = [
+type WithoutSource<T> = T extends { sourceRef: SourceReference } ? Omit<T, 'sourceRef'> : never
+type RawReadingQuestion = WithoutSource<ReadingQuestion>
+interface RawPracticeSet extends Omit<PracticeSet, 'questions'> { questions: RawReadingQuestion[] }
+
+const rawPracticeSets: RawPracticeSet[] = [
   {
     id: 'shade-networks',
     sequence: '01',
@@ -9,6 +13,9 @@ export const practiceSets: PracticeSet[] = [
     summary: '从城市热浪中的步行路线出发，练习识别论点、事实与未给信息。',
     level: 'B2–C1',
     durationMinutes: 25,
+    topics: ['城市', '气候适应'],
+    difficulty: 'medium',
+    estimatedBand: 6.5,
     passage: {
       title: 'The Shade Between Buildings',
       deck: 'Why some planners are treating cool routes as public infrastructure rather than accidental shelter.',
@@ -47,6 +54,7 @@ export const practiceSets: PracticeSet[] = [
       kind: 'original',
       author: 'IELTS Pilot',
       note: 'Original practice passage and questions written for this project; not an official IELTS item.',
+      license: 'CC-BY-4.0',
     },
     questions: [
       {
@@ -125,6 +133,63 @@ export const practiceSets: PracticeSet[] = [
         acceptedAnswers: ['A'],
         explanation: 'The conclusion explicitly identifies coordination, rather than identical materials or software, as the transferable lesson.',
       },
+      {
+        id: 'shade_q9',
+        type: 'matching-headings',
+        prompt: 'Choose the best heading for the section “A network, not an object”.',
+        options: [
+          { key: 'i', label: 'The hidden cost of sensor equipment' },
+          { key: 'ii', label: 'Small pieces that work as one route' },
+          { key: 'iii', label: 'Why residents reject longer journeys' },
+          { key: 'iv', label: 'A single landmark solution' },
+        ],
+        acceptedAnswers: ['ii'],
+        explanation: 'The section explains how separate patches become useful when joined into a continuous route.',
+      },
+      {
+        id: 'shade_q10',
+        type: 'multiple-select',
+        prompt: 'Which TWO sources of shade were recorded by volunteers?',
+        options: [
+          { key: 'A', label: 'Trees' },
+          { key: 'B', label: 'Buildings' },
+          { key: 'C', label: 'Underground pipes' },
+          { key: 'D', label: 'Parking meters' },
+        ],
+        selectLimit: 2,
+        acceptedAnswers: [['A', 'B']],
+        explanation: 'The survey recorded shade from trees, buildings, bus shelters and temporary structures.',
+      },
+      {
+        id: 'shade_q11',
+        type: 'yes-no-not-given',
+        prompt: 'The writer believes the pilot should identify one universally superior source of shade.',
+        acceptedAnswers: ['no'],
+        explanation: 'The passage says the pilot avoided declaring one source superior and instead mixed approaches.',
+      },
+      {
+        id: 'shade_q12',
+        type: 'sentence-completion',
+        prompt: 'Complete the sentence using no more than four words.',
+        beforeBlank: 'The reporting system was shared with',
+        afterBlank: '.',
+        wordLimit: 4,
+        acceptedAnswers: ['shopkeepers and bus drivers'],
+        explanation: 'Those street observers already watched conditions each day.',
+      },
+      {
+        id: 'shade_q13',
+        type: 'matching-information',
+        prompt: 'Which section describes a problem caused by fragmented ownership?',
+        options: [
+          { key: 'A', label: 'Measuring an invisible journey' },
+          { key: 'B', label: 'A network, not an object' },
+          { key: 'C', label: 'Where models meet the street' },
+          { key: 'D', label: 'The politics of small decisions' },
+        ],
+        acceptedAnswers: ['D'],
+        explanation: 'The final section explains that different organisations controlled separate fragments of the route.',
+      },
     ],
   },
   {
@@ -135,6 +200,9 @@ export const practiceSets: PracticeSet[] = [
     summary: '阅读社区修理图书馆的运作方式，训练细节定位与作者态度判断。',
     level: 'B2–C1',
     durationMinutes: 25,
+    topics: ['社区', '公共知识'],
+    difficulty: 'medium',
+    estimatedBand: 6.5,
     passage: {
       title: 'When a Library Lends a Workbench',
       deck: 'A quiet experiment is expanding what it means for a public library to share knowledge.',
@@ -173,6 +241,7 @@ export const practiceSets: PracticeSet[] = [
       kind: 'original',
       author: 'IELTS Pilot',
       note: 'Original practice passage and questions written for this project; not an official IELTS item.',
+      license: 'CC-BY-4.0',
     },
     questions: [
       {
@@ -251,9 +320,223 @@ export const practiceSets: PracticeSet[] = [
         acceptedAnswers: ['B'],
         explanation: 'The conclusion avoids grand claims and values the room for making technical curiosity and careful uncertainty ordinary.',
       },
+      {
+        id: 'repair_q9',
+        type: 'matching-headings',
+        prompt: 'Choose the best heading for “The value of a boundary”.',
+        options: [
+          { key: 'i', label: 'Knowing when not to continue' },
+          { key: 'ii', label: 'The fastest route to expert status' },
+          { key: 'iii', label: 'Why every appliance can be repaired' },
+          { key: 'iv', label: 'A catalogue without uncertainty' },
+        ],
+        acceptedAnswers: ['i'],
+        explanation: 'The section treats safety limits and permission to stop as valuable knowledge.',
+      },
+      {
+        id: 'repair_q10',
+        type: 'matching-features',
+        prompt: 'Who rotates responsibility for the opening safety briefing?',
+        options: [
+          { key: 'A', label: 'Library visitors' },
+          { key: 'B', label: 'The volunteer group' },
+          { key: 'C', label: 'Product manufacturers' },
+        ],
+        acceptedAnswers: ['B'],
+        explanation: 'Westbridge pairs newcomers with experienced repairers and rotates the briefing responsibility.',
+      },
+      {
+        id: 'repair_q11',
+        type: 'yes-no-not-given',
+        prompt: 'The staff consider some unsuccessful repairs to be educationally useful.',
+        acceptedAnswers: ['yes'],
+        explanation: 'A failed repair can still teach diagnosis, expose an unsafe part or inform a spending decision.',
+      },
+      {
+        id: 'repair_q12',
+        type: 'sentence-completion',
+        prompt: 'Complete the sentence using no more than two words.',
+        beforeBlank: 'The monthly report separates repaired objects from',
+        afterBlank: '.',
+        wordLimit: 2,
+        acceptedAnswers: ['completed investigations'],
+        explanation: 'The passage explicitly names these two reporting categories.',
+      },
+      {
+        id: 'repair_q13',
+        type: 'multiple-select',
+        prompt: 'Which TWO continuing costs are listed besides the part-time coordinator?',
+        options: [
+          { key: 'A', label: 'Replacement hand tools' },
+          { key: 'B', label: 'Safety testing' },
+          { key: 'C', label: 'Advertising campaigns' },
+          { key: 'D', label: 'New library buildings' },
+        ],
+        selectLimit: 2,
+        acceptedAnswers: [['A', 'B']],
+        explanation: 'Replacement tools and safety testing are the other continuing costs named.',
+      },
+    ],
+  },
+  {
+    id: 'rainwater-ledgers',
+    sequence: '03',
+    eyebrow: 'Resource Design',
+    title: 'The Ledger Beneath the Roof',
+    summary: '从公共建筑雨水回收系统出发，练习配对、摘要填空与流程信息定位。',
+    level: 'C1',
+    durationMinutes: 28,
+    topics: ['水资源', '建筑系统'],
+    difficulty: 'advanced',
+    estimatedBand: 7,
+    passage: {
+      title: 'The Ledger Beneath the Roof',
+      deck: 'Why successful rainwater systems begin with a record of demand rather than the size of a tank.',
+      sections: [
+        {
+          heading: 'Count before capture',
+          paragraphs: [
+            'When the North Quay education district decided to collect rainwater from six public buildings, its first purchase was not a tank. Engineers installed temporary sub-meters on toilets, garden taps and cleaning stations. For twelve weeks, the team recorded when non-drinking water was used, then compared that demand with roof area and historical rainfall. The exercise revealed that two buildings with similar roofs had very different daily patterns because one hosted evening classes while the other closed at four o’clock.',
+            'This demand ledger prevented an attractive but expensive mistake. A tank sized only from annual rainfall totals might appear generous, yet remain empty during a long dry period or stay full when a building had little use for the water. The designers instead tested several storage sizes against week-by-week supply and demand. Their aim was not to capture every drop, but to select a tank that would be used regularly enough to justify its cost and embodied materials.',
+          ],
+        },
+        {
+          heading: 'Keeping streams apart',
+          paragraphs: [
+            'Water from a roof is not automatically ready for use. Dust, leaves and bird droppings collect between storms, so North Quay fitted each system with a first-flush diverter. This device sends the earliest runoff away from the storage tank. Later water passes through a coarse screen and a finer filter before entering storage. Neither step makes the water drinkable; the district uses it only for toilet flushing, irrigation and selected cleaning tasks.',
+            'Separate, clearly marked pipework carries the reclaimed water. Physical separation is more reliable than a sign alone because it prevents an accidental connection to the drinking-water supply. At outlets accessible to staff, simple labels still explain the restriction. The combination of engineered separation and visible information allows maintenance workers to understand both the rule and the reason behind it.',
+          ],
+        },
+        {
+          heading: 'Maintenance as evidence',
+          paragraphs: [
+            'During the first winter, one building reported surprisingly low savings. The tank was filling, but a valve had been left in a position that allowed mains water to supply the toilets even when rainwater was available. A visible gauge showed the tank level, while the maintenance log showed when the valve had last been inspected. Together, these ordinary records helped staff find the fault without replacing working equipment.',
+            'The incident changed the project’s management. Facilities teams added monthly checks for filters, valves and tank levels, and the water utility included these records in its quarterly review. Budget responsibility was also clarified: the district paid for major components, while each building covered routine inspection. Without this agreement, small tasks could easily fall between organisations even though the technology itself was sound.',
+          ],
+        },
+        {
+          heading: 'Useful, not independent',
+          paragraphs: [
+            'After two years, the six systems supplied just over half of the water used for the selected non-drinking purposes. Performance varied with rainfall patterns, roof size, building schedules and the length of dry spells. The result was substantial, but it did not make the district independent of the mains network. Designers had always retained a protected backup connection for periods when stored water ran out.',
+            'North Quay publishes monthly figures for collection, use, overflow and mains backup. These figures allow other institutions to test assumptions against a working system rather than copy a tank size blindly. The broader lesson is that rainwater equipment is only one part of a service. Measurement, safe separation, maintenance and clear ownership turn a container beneath a roof into dependable infrastructure.',
+          ],
+        },
+      ],
+    },
+    provenance: {
+      kind: 'original',
+      author: 'IELTS Pilot',
+      note: 'Original practice passage and questions written for this project; not an official IELTS item.',
+      license: 'CC-BY-4.0',
+    },
+    questions: [
+      {
+        id: 'rain_q1', type: 'matching-headings', prompt: 'Choose the best heading for Section A.',
+        options: [{ key: 'i', label: 'A fault hidden in the controls' }, { key: 'ii', label: 'Measuring need before choosing equipment' }, { key: 'iii', label: 'Publishing results for other organisations' }, { key: 'iv', label: 'Protecting the drinking supply' }],
+        acceptedAnswers: ['ii'], explanation: 'Section A starts with demand measurement and uses it to choose storage.',
+      },
+      {
+        id: 'rain_q2', type: 'matching-headings', prompt: 'Choose the best heading for Section B.',
+        options: [{ key: 'i', label: 'A fault hidden in the controls' }, { key: 'ii', label: 'Measuring need before choosing equipment' }, { key: 'iii', label: 'Publishing results for other organisations' }, { key: 'iv', label: 'Protecting the drinking supply' }],
+        acceptedAnswers: ['iv'], explanation: 'Section B explains filtration, separate pipes and protection of potable water.',
+      },
+      {
+        id: 'rain_q3', type: 'matching-headings', prompt: 'Choose the best heading for Section C.',
+        options: [{ key: 'i', label: 'A fault hidden in the controls' }, { key: 'ii', label: 'Measuring need before choosing equipment' }, { key: 'iii', label: 'Publishing results for other organisations' }, { key: 'iv', label: 'Protecting the drinking supply' }],
+        acceptedAnswers: ['i'], explanation: 'A valve position caused low savings even though the tank was filling.',
+      },
+      {
+        id: 'rain_q4', type: 'matching-information', prompt: 'Which section explains why other institutions can learn from monthly operating figures?',
+        options: [{ key: 'A', label: 'Count before capture' }, { key: 'B', label: 'Keeping streams apart' }, { key: 'C', label: 'Maintenance as evidence' }, { key: 'D', label: 'Useful, not independent' }],
+        acceptedAnswers: ['D'], explanation: 'The final section says published figures let others test assumptions.',
+      },
+      {
+        id: 'rain_q5', type: 'true-false-not-given', prompt: 'The largest possible tank was considered the best option for every building.',
+        acceptedAnswers: ['false'], explanation: 'Designers chose tanks through week-by-week use rather than maximising capacity.',
+      },
+      {
+        id: 'rain_q6', type: 'true-false-not-given', prompt: 'North Quay uses collected rainwater as drinking water.',
+        acceptedAnswers: ['false'], explanation: 'The collected water is limited to non-drinking uses.',
+      },
+      {
+        id: 'rain_q7', type: 'true-false-not-given', prompt: 'Most of the project’s water savings occurred during summer.',
+        acceptedAnswers: ['not given'], explanation: 'The passage does not compare seasonal saving totals.',
+      },
+      {
+        id: 'rain_q8', type: 'yes-no-not-given', prompt: 'The writer suggests that records and maintenance are essential parts of the system.',
+        acceptedAnswers: ['yes'], explanation: 'The conclusion names measurement and maintenance as parts of dependable infrastructure.',
+      },
+      {
+        id: 'rain_q9', type: 'summary-word-bank', prompt: 'Before selecting storage, the team created a detailed record of each building’s _____.',
+        options: [{ key: 'A', label: 'demand' }, { key: 'B', label: 'ownership' }, { key: 'C', label: 'colour' }, { key: 'D', label: 'insurance' }],
+        acceptedAnswers: ['A'], explanation: 'Temporary sub-meters produced a demand ledger before tank selection.',
+      },
+      {
+        id: 'rain_q10', type: 'sentence-completion', prompt: 'Complete the sentence using no more than two words.',
+        beforeBlank: 'The first-flush diverter keeps the earliest runoff out of the', afterBlank: '.', wordLimit: 2,
+        acceptedAnswers: ['storage tank', 'tank'], explanation: 'The earliest, dirtiest runoff is diverted away from storage.',
+      },
+      {
+        id: 'rain_q11', type: 'diagram-label', prompt: 'Complete the label for the item observed by the visible gauge.',
+        diagramDescription: 'ROOF → DIVERTER → FILTER → TANK → GAUGE: ______', wordLimit: 2,
+        acceptedAnswers: ['tank level', 'tank levels'], explanation: 'The visible gauge showed the tank level.',
+      },
+      {
+        id: 'rain_q12', type: 'matching-sentence-endings', prompt: 'Separate pipework is used in order to…',
+        options: [{ key: 'A', label: 'prevent reclaimed water entering the drinking supply.' }, { key: 'B', label: 'make all outlet labels unnecessary.' }, { key: 'C', label: 'collect every drop from the roof.' }, { key: 'D', label: 'remove the need for filters.' }],
+        acceptedAnswers: ['A'], explanation: 'Physical separation prevents accidental cross-connection.',
+      },
+      {
+        id: 'rain_q13', type: 'multiple-choice', prompt: 'What is the writer’s main conclusion?',
+        options: [{ key: 'A', label: 'Rainwater tanks should replace all mains connections.' }, { key: 'B', label: 'Equipment becomes dependable when paired with measurement, maintenance and ownership.' }, { key: 'C', label: 'Only buildings with evening classes benefit from rainwater.' }, { key: 'D', label: 'Public reporting makes safety separation unnecessary.' }],
+        acceptedAnswers: ['B'], explanation: 'The conclusion frames the tank as one component in a managed service.',
+      },
+      {
+        id: 'rain_q14', type: 'multiple-select', prompt: 'Which TWO factors affected performance across the six buildings?',
+        options: [{ key: 'A', label: 'Rainfall patterns' }, { key: 'B', label: 'Building schedules' }, { key: 'C', label: 'Wall colour' }, { key: 'D', label: 'Library membership' }],
+        selectLimit: 2, acceptedAnswers: [['A', 'B']], explanation: 'Performance varied with rainfall, roof size, schedules and dry-spell length.',
+      },
     ],
   },
 ]
+
+const sourceRefs: SourceReference[][] = [
+  [
+    { sectionIndex: 3, paragraphIndex: 1 }, { sectionIndex: 0, paragraphIndex: 1 },
+    { sectionIndex: 1, paragraphIndex: 1 }, { sectionIndex: 2, paragraphIndex: 0 },
+    { sectionIndex: 0, paragraphIndex: 1 }, { sectionIndex: 0, paragraphIndex: 0 },
+    { sectionIndex: 2, paragraphIndex: 0 }, { sectionIndex: 3, paragraphIndex: 1 },
+    { sectionIndex: 1, paragraphIndex: 0 }, { sectionIndex: 0, paragraphIndex: 1 },
+    { sectionIndex: 2, paragraphIndex: 0 }, { sectionIndex: 2, paragraphIndex: 1 },
+    { sectionIndex: 3, paragraphIndex: 0 },
+  ],
+  [
+    { sectionIndex: 0, paragraphIndex: 1 }, { sectionIndex: 1, paragraphIndex: 0 },
+    { sectionIndex: 1, paragraphIndex: 1 }, { sectionIndex: 3, paragraphIndex: 0 },
+    { sectionIndex: 1, paragraphIndex: 0 }, { sectionIndex: 2, paragraphIndex: 0 },
+    { sectionIndex: 2, paragraphIndex: 1 }, { sectionIndex: 3, paragraphIndex: 1 },
+    { sectionIndex: 2, paragraphIndex: 0 }, { sectionIndex: 3, paragraphIndex: 0 },
+    { sectionIndex: 1, paragraphIndex: 1 }, { sectionIndex: 1, paragraphIndex: 1 },
+    { sectionIndex: 3, paragraphIndex: 0 },
+  ],
+  [
+    { sectionIndex: 0, paragraphIndex: 0 }, { sectionIndex: 1, paragraphIndex: 0 },
+    { sectionIndex: 2, paragraphIndex: 0 }, { sectionIndex: 3, paragraphIndex: 1 },
+    { sectionIndex: 0, paragraphIndex: 1 }, { sectionIndex: 1, paragraphIndex: 0 },
+    { sectionIndex: 3, paragraphIndex: 0 }, { sectionIndex: 3, paragraphIndex: 1 },
+    { sectionIndex: 0, paragraphIndex: 0 }, { sectionIndex: 1, paragraphIndex: 0 },
+    { sectionIndex: 2, paragraphIndex: 0 }, { sectionIndex: 1, paragraphIndex: 1 },
+    { sectionIndex: 3, paragraphIndex: 1 }, { sectionIndex: 3, paragraphIndex: 0 },
+  ],
+]
+
+export const practiceSets: PracticeSet[] = rawPracticeSets.map((set, setIndex) => ({
+  ...set,
+  questions: set.questions.map((question, questionIndex) => ({
+    ...question,
+    sourceRef: sourceRefs[setIndex]?.[questionIndex] ?? { sectionIndex: 0, paragraphIndex: 0 },
+  })) as ReadingQuestion[],
+}))
 
 export function getPracticeSet(testId: string): PracticeSet | undefined {
   return practiceSets.find(({ id }) => id === testId)

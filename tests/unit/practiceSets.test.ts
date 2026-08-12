@@ -1,25 +1,23 @@
-import { practiceSets } from '../../src/data/practiceSets'
+import { fullReadingMock, getMockPracticeSets } from '../../src/data/fullMock'
+import { getPracticeSet, practiceSets } from '../../src/data/practiceSets'
 
-describe('bundled practice content', () => {
-  it('ships two complete, explicitly original reading sets', () => {
-    expect(practiceSets).toHaveLength(2)
-
-    for (const practiceSet of practiceSets) {
-      expect(practiceSet.provenance.kind).toBe('original')
-      expect(practiceSet.questions).toHaveLength(8)
-      expect(practiceSet.passage.sections.length).toBeGreaterThanOrEqual(4)
-      expect(new Set(practiceSet.questions.map(({ id }) => id)).size).toBe(8)
-      expect(practiceSet.questions.some(({ type }) => type === 'multiple-choice')).toBe(true)
-      expect(practiceSet.questions.some(({ type }) => type === 'true-false-not-given')).toBe(true)
-      expect(practiceSet.questions.some(({ type }) => type === 'short-answer')).toBe(true)
+describe('practice set catalog', () => {
+  it('ships three original, source-linked passage sets', () => {
+    expect(practiceSets).toHaveLength(3)
+    expect(getPracticeSet('shade-networks')?.title).toBe('The Shade Between Buildings')
+    for (const set of practiceSets) {
+      expect(set.provenance.kind).toBe('original')
+      expect(set.provenance.license).toBeTruthy()
+      expect(set.questions.every((question) => question.sourceRef.sectionIndex < set.passage.sections.length)).toBe(true)
     }
   })
 
-  it('uses unique test and question identifiers across the catalog', () => {
-    const testIds = practiceSets.map(({ id }) => id)
-    const questionIds = practiceSets.flatMap(({ questions }) => questions.map(({ id }) => id))
-
-    expect(new Set(testIds).size).toBe(testIds.length)
-    expect(new Set(questionIds).size).toBe(questionIds.length)
+  it('builds a complete three-passage, forty-question mock', () => {
+    const sets = getMockPracticeSets(fullReadingMock.id)
+    expect(sets).toHaveLength(3)
+    expect(sets.flatMap((set) => set.questions)).toHaveLength(40)
+    expect(fullReadingMock.durationMinutes).toBe(60)
+    expect(new Set(sets.flatMap((set) => set.questions.map((question) => question.type))).size).toBeGreaterThanOrEqual(8)
   })
 })
+

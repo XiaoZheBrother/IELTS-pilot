@@ -3,7 +3,7 @@ import { scoreReadingTest } from '../domain/readingScorer'
 import type { Attempt, PracticeSet, ReadingAnswers } from '../domain/models'
 import type { PracticeRepository } from '../storage/practiceRepository'
 
-interface PracticeSessionOptions {
+export interface PracticeSessionOptions {
   repository: PracticeRepository
   now?: () => Date
   createId?: () => string
@@ -15,33 +15,29 @@ export function usePracticeSession(practiceSet: PracticeSet, options: PracticeSe
   const totalSeconds = practiceSet.durationMinutes * 60
   const draft = options.repository.getDraft(practiceSet.id)
   const answers = ref<ReadingAnswers>({ ...(draft?.answers ?? {}) })
+  const flags = ref<string[]>([...(draft?.flags ?? [])])
   const currentIndex = ref(Math.min(Math.max(draft?.currentIndex ?? 0, 0), practiceSet.questions.length - 1))
   const remainingSeconds = ref(Math.min(Math.max(draft?.remainingSeconds ?? totalSeconds, 0), totalSeconds))
   const status = ref<'active' | 'submitted'>('active')
   const attempt = shallowRef<Attempt | null>(null)
 
-  const answeredCount = computed(() =>
-    practiceSet.questions.filter(({ id }) => Boolean(answers.value[id]?.trim())).length,
-  )
-
-  const progressPercentage = computed(() =>
-    Math.round((answeredCount.value / practiceSet.questions.length) * 100),
-  )
+  const answeredCount = computed(() => practiceSet.questions.filter(({ id }) => answers.value[id]?.some((answer) => answer.trim())).length)
+  const progressPercentage = computed(() => Math.round((answeredCount.value / practiceSet.questions.length) * 100))
 
   function persistDraft(): void {
     if (status.value !== 'active') return
-    options.repository.saveDraft({
-      testId: practiceSet.id,
-      answers: { ...answers.value },
-      currentIndex: currentIndex.value,
-      remainingSeconds: remainingSeconds.value,
-      updatedAt: now().toISOString(),
-    })
+    options.repository.saveDraft({ testId: practiceSet.id, answers: { ...answers.value }, currentIndex: currentIndex.value, remainingSeconds: remainingSeconds.value, updatedAt: now().toISOString(), flags: [...flags.value] })
   }
 
-  function answerQuestion(questionId: string, answer: string): void {
+  function answerQuestion(questionId: string, answer: string[]): void {
     if (status.value !== 'active') return
-    answers.value = { ...answers.value, [questionId]: answer }
+    answers.value = { ...answers.value, [questionId]: [...answer] }
+    persistDraft()
+  }
+
+  function toggleFlag(questionId: string): void {
+    if (status.value !== 'active') return
+    flags.value = flags.value.includes(questionId) ? flags.value.filter((id) => id !== questionId) : [...flags.value, questionId]
     persistDraft()
   }
 
@@ -53,17 +49,11 @@ export function usePracticeSession(practiceSet: PracticeSet, options: PracticeSe
 
   function submit(reason: Attempt['submissionReason']): Attempt {
     if (attempt.value) return attempt.value
-
     const result: Attempt = {
-      id: createId(),
-      testId: practiceSet.id,
-      answers: { ...answers.value },
-      score: scoreReadingTest(practiceSet, answers.value),
-      submittedAt: now().toISOString(),
-      durationSeconds: totalSeconds - remainingSeconds.value,
-      submissionReason: reason,
+      id: createId(), testId: practiceSet.id, mode: 'practice', answers: { ...answers.value },
+      score: scoreReadingTest(practiceSet, answers.value), submittedAt: now().toISOString(),
+      durationSeconds: totalSeconds - remainingSeconds.value, submissionReason: reason,
     }
-
     attempt.value = result
     status.value = 'submitted'
     options.repository.saveAttempt(result)
@@ -79,18 +69,6 @@ export function usePracticeSession(practiceSet: PracticeSet, options: PracticeSe
     return null
   }
 
-  return {
-    answers,
-    currentIndex,
-    remainingSeconds,
-    status,
-    attempt,
-    answeredCount,
-    progressPercentage,
-    answerQuestion,
-    goToQuestion,
-    persistDraft,
-    submit,
-    tick,
-  }
+  return { answers, flags, currentIndex, remainingSeconds, status, attempt, answeredCount, progressPercentage, answerQuestion, toggleFlag, goToQuestion, persistDraft, submit, tick }
 }
+

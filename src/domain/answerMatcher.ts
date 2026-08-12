@@ -1,6 +1,7 @@
-import type { ReadingQuestion } from './models'
+import type { AcceptedAnswer, ReadingQuestion } from './models'
 
 const boundaryPunctuation = /^[\s"'“”‘’.,!?;:()[\]{}]+|[\s"'“”‘’.,!?;:()[\]{}]+$/gu
+const completionTypes = new Set(['short-answer', 'sentence-completion', 'diagram-label'])
 
 export function normalizeAnswer(value: string): string {
   return value
@@ -12,40 +13,42 @@ export function normalizeAnswer(value: string): string {
     .trim()
 }
 
-function canonicalTfng(value: string): string {
+function canonicalJudgment(value: string): string {
   const compact = normalizeAnswer(value).replace(/[\s-]+/g, '')
   const aliases: Record<string, string> = {
-    true: 'true',
-    t: 'true',
-    yes: 'true',
-    y: 'true',
-    false: 'false',
-    f: 'false',
-    no: 'false',
-    n: 'false',
-    notgiven: 'not given',
-    ng: 'not given',
+    true: 'yes', t: 'yes', yes: 'yes', y: 'yes',
+    false: 'no', f: 'no', no: 'no', n: 'no',
+    notgiven: 'not given', ng: 'not given',
   }
-
   return aliases[compact] ?? normalizeAnswer(value)
 }
 
-export function matchAnswer(question: ReadingQuestion, answer: string | undefined): boolean {
-  if (!answer?.trim()) return false
+function normalizeValues(values: string[], judgment: boolean): string[] {
+  const normalize = judgment ? canonicalJudgment : normalizeAnswer
+  return values.map(normalize).filter(Boolean).sort()
+}
 
-  if (question.type === 'short-answer') {
-    const normalized = normalizeAnswer(answer)
+function acceptedToValues(accepted: AcceptedAnswer): string[] {
+  return Array.isArray(accepted) ? accepted : [accepted]
+}
+
+export function matchAnswer(question: ReadingQuestion, answer: string[] | undefined): boolean {
+  if (!answer?.some((value) => value.trim())) return false
+
+  const first = answer[0] ?? ''
+  if (completionTypes.has(question.type) && 'wordLimit' in question) {
+    const normalized = normalizeAnswer(first)
     const wordCount = normalized ? normalized.split(/\s+/).length : 0
     if (wordCount > question.wordLimit) return false
-
-    return question.acceptedAnswers.some((accepted) => normalizeAnswer(accepted) === normalized)
   }
 
-  if (question.type === 'true-false-not-given') {
-    const normalized = canonicalTfng(answer)
-    return question.acceptedAnswers.some((accepted) => canonicalTfng(accepted) === normalized)
-  }
+  const judgment = question.type === 'true-false-not-given' || question.type === 'yes-no-not-given'
+  const normalizedAnswer = normalizeValues(answer, judgment)
 
-  const normalized = normalizeAnswer(answer)
-  return question.acceptedAnswers.some((accepted) => normalizeAnswer(accepted) === normalized)
+  return question.acceptedAnswers.some((accepted) => {
+    const normalizedAccepted = normalizeValues(acceptedToValues(accepted), judgment)
+    return normalizedAccepted.length === normalizedAnswer.length
+      && normalizedAccepted.every((value, index) => value === normalizedAnswer[index])
+  })
 }
+

@@ -2,21 +2,11 @@ import { matchAnswer } from './answerMatcher'
 import type { PracticeSet, ReadingAnswers, ReadingScore } from './models'
 
 const academicReadingBands: Array<{ minimum: number; band: number }> = [
-  { minimum: 39, band: 9 },
-  { minimum: 37, band: 8.5 },
-  { minimum: 35, band: 8 },
-  { minimum: 33, band: 7.5 },
-  { minimum: 30, band: 7 },
-  { minimum: 27, band: 6.5 },
-  { minimum: 23, band: 6 },
-  { minimum: 19, band: 5.5 },
-  { minimum: 15, band: 5 },
-  { minimum: 13, band: 4.5 },
-  { minimum: 10, band: 4 },
-  { minimum: 8, band: 3.5 },
-  { minimum: 6, band: 3 },
-  { minimum: 4, band: 2.5 },
-  { minimum: 0, band: 2 },
+  { minimum: 39, band: 9 }, { minimum: 37, band: 8.5 }, { minimum: 35, band: 8 },
+  { minimum: 33, band: 7.5 }, { minimum: 30, band: 7 }, { minimum: 27, band: 6.5 },
+  { minimum: 23, band: 6 }, { minimum: 19, band: 5.5 }, { minimum: 15, band: 5 },
+  { minimum: 13, band: 4.5 }, { minimum: 10, band: 4 }, { minimum: 8, band: 3.5 },
+  { minimum: 6, band: 3 }, { minimum: 4, band: 2.5 }, { minimum: 0, band: 2 },
 ]
 
 export function approximateAcademicBand(raw40: number): number {
@@ -25,13 +15,15 @@ export function approximateAcademicBand(raw40: number): number {
 
 export function scoreReadingTest(test: PracticeSet, answers: ReadingAnswers): ReadingScore {
   const items = test.questions.map((question) => {
-    const givenAnswer = answers[question.id] ?? ''
+    const givenAnswer = answers[question.id] ?? []
     return {
       questionId: question.id,
+      questionType: question.type,
       isCorrect: matchAnswer(question, givenAnswer),
-      givenAnswer,
-      acceptedAnswers: [...question.acceptedAnswers],
+      givenAnswer: [...givenAnswer],
+      acceptedAnswers: question.acceptedAnswers.map((answer) => Array.isArray(answer) ? [...answer] : answer),
       explanation: question.explanation,
+      sourceRef: { ...question.sourceRef },
     }
   })
   const correct = items.filter((item) => item.isCorrect).length
@@ -40,12 +32,9 @@ export function scoreReadingTest(test: PracticeSet, answers: ReadingAnswers): Re
   const normalizedRaw40 = total === 0 ? 0 : Math.round((correct / total) * 40)
 
   return {
-    correct,
-    total,
-    percentage,
-    normalizedRaw40,
+    correct, total, percentage, normalizedRaw40,
     approximateBand: approximateAcademicBand(normalizedRaw40),
-    scoringVersion: 'reading-v1',
-    items,
+    scoringVersion: 'reading-v2', items,
   }
 }
+

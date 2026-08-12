@@ -11,7 +11,7 @@ describe('ScoreSummary', () => {
           percentage: 75,
           normalizedRaw40: 30,
           approximateBand: 7,
-          scoringVersion: 'reading-v1',
+          scoringVersion: 'reading-v2',
           items: [],
         },
       },
