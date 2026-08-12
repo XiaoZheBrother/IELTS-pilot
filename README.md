@@ -97,6 +97,19 @@ npm run desktop:build
 
 请只导入原创、公共领域或已获明确授权的材料。使用者需要自行确认许可证允许修改、再分发和目标使用方式。字段说明见 [内容包格式文档](docs/content-package-format.md)，可导入样例见 [sample-content-package-v2.json](examples/sample-content-package-v2.json)。
 
+### 本地转换参考项目阅读题库
+
+仓库提供一个本地转换工具，可将你自己持有的 [IELTS-practice](https://github.com/sallowayma-git/IELTS-practice) `ReadingExamSourceV1` 数据转换成 IELTS Pilot v2 JSON 内容包：
+
+```bash
+npm run content:convert:legacy -- --source "D:\path\to\IELTS-practice" --output "artifacts\import\ielts-practice-reading" --package-size 25
+npm run content:validate -- --input "artifacts\import\ielts-practice-reading"
+```
+
+按当前参考项目快照会生成 11 个可导入包，覆盖 P1/P2/P3 共 234 篇、3143 道题，同时生成 `conversion-report.json`、`SHA256SUMS.txt` 和 `IMPORT-INSTRUCTIONS.txt`。在另一台电脑中打开“题库 → 题库包管理”，按文件编号逐个选择 `private-atlas-*.json`、预览并确认安装即可。
+
+转换结果默认位于被 Git 忽略的 `artifacts/`，不会提交或发布第三方题文。转换器只处理本机已有数据，不代表参考项目或第三方权利人授予了修改、再分发或商业使用许可；请在复制到其他设备前自行确认你拥有相应使用权。
+
 ## 验证
 
 ```bash

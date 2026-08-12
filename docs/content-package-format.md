@@ -28,6 +28,17 @@ IELTS Pilot 只导入声明式 JSON，不执行内容包中的脚本。安装前
 
 完整可导入示例见 [`examples/sample-content-package-v2.json`](../examples/sample-content-package-v2.json)。也可以在应用的“题库包管理 → 创建本地题库”中可视化编辑并导出。
 
+## 本地旧题库迁移
+
+`tools/convert-ielts-practice-reading.mjs` 用于把本机已有的 [IELTS-practice](https://github.com/sallowayma-git/IELTS-practice) 生成式阅读数据迁移为本格式。它在受限 `node:vm` 环境中捕获数据注册，不直接导入源 JavaScript 模块；输出按 P1/P2/P3 分包，并附质量报告、SHA-256 清单和简体中文导入说明。
+
+```bash
+npm run content:convert:legacy -- --source "D:\path\to\IELTS-practice" --output "artifacts\import\ielts-practice-reading" --package-size 25
+npm run content:validate -- --input "artifacts\import\ielts-practice-reading"
+```
+
+转换命令不会授予源材料的修改、再分发或商业使用权。生成文件默认被 Git 忽略，仅适合在你有权使用这些材料的设备间私人迁移。
+
 ## 安全与版权
 
 - 只导入原创、公共领域或已获授权的内容。
