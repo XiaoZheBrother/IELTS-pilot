@@ -10,7 +10,7 @@ describe('desktop packaging configuration', () => {
       bundle: { targets: string[]; createUpdaterArtifacts?: boolean }
       plugins?: { updater?: { pubkey?: string; endpoints?: string[]; windows?: { installMode?: string } } }
     }
-    expect(pkg.version).toBe('0.9.6')
+    expect(pkg.version).toBe('0.9.7')
     expect(config.version).toBe(pkg.version)
     expect(config.bundle.targets).toContain('nsis')
     expect(config.build.frontendDist).toBe('../dist')
@@ -58,7 +58,7 @@ describe('desktop packaging configuration', () => {
     expect(workflow).toContain('releaseDraft: false')
     expect(workflow).toContain('releaseAssetNamePattern: IELTS-Pilot-[version]-Windows-[arch]-Setup.[ext]')
     expect(workflow).toContain('src-tauri/tauri.release.conf.json')
-    expect(readme).toContain('https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.6/IELTS.Pilot_0.9.6_x64-setup.exe')
+    expect(readme).toContain('https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.7/IELTS.Pilot_0.9.7_x64-setup.exe')
   })
 
   it('routes desktop writing assessment through a rustls HTTPS command without embedded credentials', () => {

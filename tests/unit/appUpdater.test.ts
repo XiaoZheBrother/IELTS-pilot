@@ -52,6 +52,9 @@ describe('app updater adapter', () => {
       relaunch: async () => undefined,
     })
 
-    await expect(updater.check()).resolves.toEqual({ status: 'error', message: '检查更新失败，请确认网络后重试。' })
+    await expect(updater.check()).resolves.toEqual({
+      status: 'error',
+      message: '检查更新失败：network timeout。请确认网络或代理设置后重试。',
+    })
   })
 })

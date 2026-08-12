@@ -42,6 +42,11 @@ export interface AppUpdater {
 
 export const APP_UPDATER_KEY: InjectionKey<AppUpdater> = Symbol('ielts-pilot-app-updater')
 
+function updaterErrorDetail(error: unknown): string {
+  const detail = error instanceof Error ? error.message : String(error)
+  return detail.trim().replace(/\s+/g, ' ').slice(0, 180) || '未知错误'
+}
+
 export function createAppUpdater(desktop: boolean, bindings?: UpdaterBindings): AppUpdater {
   return {
     supported: desktop,
@@ -59,8 +64,11 @@ export function createAppUpdater(desktop: boolean, bindings?: UpdaterBindings): 
             downloadAndInstall: update.downloadAndInstall.bind(update),
           },
         }
-      } catch {
-        return { status: 'error', message: '检查更新失败，请确认网络后重试。' }
+      } catch (error) {
+        return {
+          status: 'error',
+          message: `检查更新失败：${updaterErrorDetail(error)}。请确认网络或代理设置后重试。`,
+        }
       }
     },
     async install(update, onProgress) {

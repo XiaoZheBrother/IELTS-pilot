@@ -8,6 +8,7 @@ import { APP_VERSION } from '../platform/runtime'
 const updater = inject(APP_UPDATER_KEY, createRuntimeAppUpdater())
 const status = ref<UpdateCheckResult>(updater.supported ? { status: 'current' } : { status: 'unsupported' })
 const checking = ref(false)
+const hasChecked = ref(false)
 const installing = ref(false)
 const progress = ref(0)
 const installError = ref('')
@@ -16,6 +17,7 @@ async function checkForUpdates(): Promise<void> {
   checking.value = true
   installError.value = ''
   status.value = await updater.check()
+  hasChecked.value = true
   checking.value = false
 }
 
@@ -42,7 +44,7 @@ async function installUpdate(update: AvailableUpdate): Promise<void> {
     <section class="security-status" :class="`is-${status.status}`" aria-live="polite">
       <span>当前版本</span><strong>{{ APP_VERSION }}</strong>
       <p v-if="status.status === 'unsupported'">应用内更新仅在 Windows 桌面版可用。浏览器版由网站发布者更新。</p>
-      <p v-else-if="status.status === 'current'">{{ checking ? '正在连接签名发布通道…' : '已经是最新版本，或尚未执行本次检查。' }}</p>
+      <p v-else-if="status.status === 'current'">{{ checking ? '正在连接签名发布通道…' : hasChecked ? '检查完成，当前已是最新版本。' : '尚未执行本次检查。' }}</p>
       <p v-else-if="status.status === 'error'">{{ status.message }}</p>
       <p v-else>发现已验证的新版本 {{ status.update.version }}</p>
       <button data-testid="check-update" class="signal-action" type="button" :disabled="!updater.supported || checking || installing" @click="checkForUpdates">

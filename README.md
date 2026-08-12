@@ -1,14 +1,14 @@
 # IELTS Pilot
 
-一个本地优先的 IELTS 阅读与写作练习工作台。v0.9.6 加入真实流式 AI、自动训练闭环、周总结和写作深度教练。
+一个本地优先的 IELTS 阅读与写作练习工作台。v0.9.7 加入真实流式 AI、自动训练闭环、周总结、写作深度教练，以及可验证的应用内更新状态。
 
 > 本项目不是 IELTS 官方产品，不包含官方真题，也不提供官方成绩。
 
-> **Windows 用户：**[直接下载 IELTS Pilot v0.9.6 安装包（x64 Setup.exe）](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.6/IELTS.Pilot_0.9.6_x64-setup.exe)。其他版本与校验文件见 [GitHub Releases](https://github.com/XiaoZheBrother/IELTS-pilot/releases/latest)。
+> **Windows 用户：**[直接下载 IELTS Pilot v0.9.7 安装包（x64 Setup.exe）](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.7/IELTS.Pilot_0.9.7_x64-setup.exe)。其他版本与校验文件见 [GitHub Releases](https://github.com/XiaoZheBrother/IELTS-pilot/releases/latest)。
 
-完整的助手能力、证据边界、使用方法和验证说明，请参阅 [v0.9.6 产品功能说明书](docs/IELTS-Pilot-v0.96-产品功能说明书.md)。
+完整的助手能力、证据边界、使用方法和验证说明，请参阅 [v0.9.7 产品功能说明书](docs/IELTS-Pilot-v0.96-产品功能说明书.md)。
 
-## v0.9.6 功能清单
+## v0.9.7 功能清单
 
 - 5 篇项目原创英文文章，共 54 道题；其中前 3 篇组成 40 题、60 分钟完整阅读模考
 - 12 种题型：单选、多选、T/F/NG、Y/N/NG、标题配对、信息配对、特征配对、句尾配对、简答、句子填空、摘要选词、图示填空
@@ -69,7 +69,7 @@ npm run serve:production -- --config "你的 AI 配置文件路径" --port 4390
 
 ## Windows 桌面版
 
-不需要开发环境时，直接下载并运行 [IELTS Pilot v0.9.6 Windows x64 安装包](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.6/IELTS.Pilot_0.9.6_x64-setup.exe)。已安装旧版时无需卸载，直接覆盖安装即可保留本地数据；v0.9.2 及以上也可使用应用内签名更新。安装器按当前用户安装，不需要管理员权限。由于当前开源构建没有商业 Authenticode 证书，Windows SmartScreen 可能显示“未知发布者”。
+不需要开发环境时，直接下载并运行 [IELTS Pilot v0.9.7 Windows x64 安装包](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.7/IELTS.Pilot_0.9.7_x64-setup.exe)。已安装旧版时无需卸载，直接覆盖安装即可保留本地数据；v0.9.2 及以上也可使用应用内签名更新。安装器按当前用户安装，不需要管理员权限。由于当前开源构建没有商业 Authenticode 证书，Windows SmartScreen 可能显示“未知发布者”。
 
 开发模式还需要 Rust stable、Microsoft C++ Build Tools 和 Windows WebView2：
 
@@ -170,4 +170,4 @@ src-tauri/          # Tauri 2 Rust 壳、权限与 NSIS 配置
 
 ## 路线图边界
 
-v0.1 至 v0.9.6 完成情况见 [ROADMAP.md](docs/ROADMAP.md)。托管账号服务、商业 Authenticode 证书、听力、词汇 SRS、口语 AI 辅助反馈、官方评分和付费能力不在本里程碑内。
+v0.1 至 v0.9.7 完成情况见 [ROADMAP.md](docs/ROADMAP.md)。托管账号服务、商业 Authenticode 证书、听力、词汇 SRS、口语 AI 辅助反馈、官方评分和付费能力不在本里程碑内。

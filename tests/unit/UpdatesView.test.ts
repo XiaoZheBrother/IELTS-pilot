@@ -25,8 +25,10 @@ describe('UpdatesView', () => {
       install: async () => undefined,
     })
 
+    expect(wrapper.text()).toContain('尚未执行本次检查')
     await wrapper.get('[data-testid="check-update"]').trigger('click')
-    expect(wrapper.text()).toContain('已经是最新版本')
+    expect(wrapper.text()).toContain('检查完成，当前已是最新版本')
+    expect(wrapper.text()).not.toContain('尚未执行本次检查')
   })
 
   it('reviews a release before explicit installation', async () => {
