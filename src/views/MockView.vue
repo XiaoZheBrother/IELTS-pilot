@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import PassageReader from '../components/PassageReader.vue'
 import QuestionRenderer from '../components/QuestionRenderer.vue'
 import { useMockSession } from '../composables/useMockSession'
+import { useReaderPreferences } from '../composables/useReaderPreferences'
 import { fullReadingMock, getMockPracticeSets } from '../data/fullMock'
 import { questionTypeLabels } from '../domain/questionLabels'
 import { createBrowserPracticeRepository } from '../storage/practiceRepository'
@@ -11,12 +13,39 @@ const route = useRoute()
 const router = useRouter()
 const validMock = String(route.params.mockId) === fullReadingMock.id
 const practiceSets = getMockPracticeSets(String(route.params.mockId))
-const session = useMockSession(fullReadingMock, practiceSets, { repository: createBrowserPracticeRepository() })
+const repository = createBrowserPracticeRepository()
+const session = useMockSession(fullReadingMock, practiceSets, { repository })
+const { preferences } = useReaderPreferences(repository)
+const annotations = ref(repository.listAnnotations())
 const confirmOpen = ref(false)
 const mobilePane = ref<'passage' | 'questions'>('questions')
 const currentQuestion = computed(() => session.currentEntry.value.question)
 const currentSet = computed(() => session.currentEntry.value.practiceSet)
 const formatTime = (seconds: number) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
+const currentAnnotations = computed(() => annotations.value.filter(({ setId }) => setId === currentSet.value.id))
+
+function saveAnnotation(annotation: Parameters<typeof repository.saveAnnotation>[0]): void {
+  repository.saveAnnotation(annotation)
+  annotations.value = repository.listAnnotations()
+}
+
+function removeAnnotation(id: string): void {
+  repository.removeAnnotation(id)
+  annotations.value = repository.listAnnotations()
+}
+
+function handleShortcut(event: KeyboardEvent): void {
+  if (event.target instanceof Element && event.target.closest('input, textarea, select, [contenteditable="true"]')) return
+  const key = event.key.toLocaleLowerCase()
+  if (key === 'j') session.goToQuestion(session.currentIndex.value + 1)
+  else if (key === 'k') session.goToQuestion(session.currentIndex.value - 1)
+  else if (key === 'f') session.toggleFlag(currentQuestion.value.id)
+  else if (key === '1') mobilePane.value = 'passage'
+  else if (key === '2') mobilePane.value = 'questions'
+  else if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) confirmOpen.value = true
+  else return
+  event.preventDefault()
+}
 
 function completeSubmission(): void {
   const attempt = session.submit('manual')
@@ -27,12 +56,13 @@ function completeSubmission(): void {
 let timer: number | undefined
 onMounted(() => {
   if (!validMock || practiceSets.length !== 3) { void router.replace('/'); return }
+  window.addEventListener('keydown', handleShortcut)
   timer = window.setInterval(() => {
     const attempt = session.tick()
     if (attempt) { window.clearInterval(timer); void router.replace(`/result/${attempt.id}`) }
   }, 1000)
 })
-onBeforeUnmount(() => window.clearInterval(timer))
+onBeforeUnmount(() => { window.clearInterval(timer); window.removeEventListener('keydown', handleShortcut) })
 </script>
 
 <template>
@@ -49,18 +79,13 @@ onBeforeUnmount(() => window.clearInterval(timer))
     <div class="mobile-pane-switch" aria-label="移动端内容切换"><button :class="{ active: mobilePane === 'passage' }" @click="mobilePane = 'passage'">阅读文章</button><button :class="{ active: mobilePane === 'questions' }" @click="mobilePane = 'questions'">回答问题</button></div>
 
     <div class="exam-workspace">
-      <article class="exam-passage" :class="{ 'mobile-pane--hidden': mobilePane !== 'passage' }">
-        <header><p class="section-kicker">Passage {{ session.currentPassageIndex.value + 1 }} / 3</p><h1>{{ currentSet.passage.title }}</h1><p>{{ currentSet.passage.deck }}</p></header>
-        <section v-for="(section, index) in currentSet.passage.sections" :key="section.heading" class="passage-block">
-          <span>{{ String.fromCharCode(65 + index) }}</span><div><h2>{{ section.heading }}</h2><p v-for="paragraph in section.paragraphs" :key="paragraph">{{ paragraph }}</p></div>
-        </section>
-        <footer>{{ currentSet.provenance.note }}</footer>
-      </article>
+      <PassageReader :class="{ 'mobile-pane--hidden': mobilePane !== 'passage' }" :practice-set="currentSet" :annotations="currentAnnotations" :preferences="preferences" @add="saveAnnotation" @update="saveAnnotation" @remove="removeAnnotation" />
 
       <aside class="exam-questions" :class="{ 'mobile-pane--hidden': mobilePane !== 'questions' }">
         <div class="question-context"><div><p class="section-kicker">Question {{ session.currentIndex.value + 1 }} / 40</p><strong>{{ questionTypeLabels[currentQuestion.type] }}</strong></div><button class="flag-button" :class="{ active: session.flags.value.includes(currentQuestion.id) }" type="button" @click="session.toggleFlag(currentQuestion.id)">{{ session.flags.value.includes(currentQuestion.id) ? '已标记' : '标记此题' }}</button></div>
         <QuestionRenderer :key="currentQuestion.id" :question="currentQuestion" :model-value="session.answers.value[currentQuestion.id] ?? []" @update:model-value="session.answerQuestion(currentQuestion.id, $event)" />
         <div class="question-actions"><button type="button" :disabled="session.currentIndex.value === 0" @click="session.goToQuestion(session.currentIndex.value - 1)">上一题</button><button type="button" :disabled="session.currentIndex.value === 39" @click="session.goToQuestion(session.currentIndex.value + 1)">下一题 →</button></div>
+        <p class="shortcut-hint">快捷键 J/K 切题 · F 标记 · Ctrl/⌘+Enter 提交</p>
       </aside>
     </div>
 

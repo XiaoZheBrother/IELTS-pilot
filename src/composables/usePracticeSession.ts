@@ -19,6 +19,7 @@ export function usePracticeSession(practiceSet: PracticeSet, options: PracticeSe
   const currentIndex = ref(Math.min(Math.max(draft?.currentIndex ?? 0, 0), practiceSet.questions.length - 1))
   const remainingSeconds = ref(Math.min(Math.max(draft?.remainingSeconds ?? totalSeconds, 0), totalSeconds))
   const status = ref<'active' | 'submitted'>('active')
+  const isPaused = ref(Boolean(draft?.isPaused))
   const attempt = shallowRef<Attempt | null>(null)
 
   const answeredCount = computed(() => practiceSet.questions.filter(({ id }) => answers.value[id]?.some((answer) => answer.trim())).length)
@@ -26,7 +27,7 @@ export function usePracticeSession(practiceSet: PracticeSet, options: PracticeSe
 
   function persistDraft(): void {
     if (status.value !== 'active') return
-    options.repository.saveDraft({ testId: practiceSet.id, answers: { ...answers.value }, currentIndex: currentIndex.value, remainingSeconds: remainingSeconds.value, updatedAt: now().toISOString(), flags: [...flags.value] })
+    options.repository.saveDraft({ testId: practiceSet.id, answers: { ...answers.value }, currentIndex: currentIndex.value, remainingSeconds: remainingSeconds.value, updatedAt: now().toISOString(), flags: [...flags.value], isPaused: isPaused.value })
   }
 
   function answerQuestion(questionId: string, answer: string[]): void {
@@ -61,14 +62,21 @@ export function usePracticeSession(practiceSet: PracticeSet, options: PracticeSe
     return result
   }
 
+  function togglePause(): void {
+    if (status.value !== 'active') return
+    isPaused.value = !isPaused.value
+    persistDraft()
+  }
+
   function tick(): Attempt | null {
     if (status.value !== 'active') return attempt.value
+    if (isPaused.value) return null
     remainingSeconds.value = Math.max(remainingSeconds.value - 1, 0)
     if (remainingSeconds.value === 0) return submit('time-expired')
     persistDraft()
     return null
   }
 
-  return { answers, flags, currentIndex, remainingSeconds, status, attempt, answeredCount, progressPercentage, answerQuestion, toggleFlag, goToQuestion, persistDraft, submit, tick }
+  return { answers, flags, currentIndex, remainingSeconds, status, isPaused, attempt, answeredCount, progressPercentage, answerQuestion, toggleFlag, goToQuestion, togglePause, persistDraft, submit, tick }
 }
 

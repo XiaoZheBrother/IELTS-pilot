@@ -42,5 +42,22 @@ describe('practice session', () => {
     expect(session.tick()?.submissionReason).toBe('time-expired')
     expect(repository.getAttempt('timed-attempt')).not.toBeNull()
   })
+
+  it('pauses and restores an untimed practice without decrementing the timer', () => {
+    const repository = createPracticeRepository(createMemoryStorage())
+    const session = usePracticeSession(practiceSet, { repository })
+    const before = session.remainingSeconds.value
+    session.togglePause()
+    expect(session.isPaused.value).toBe(true)
+    expect(session.tick()).toBeNull()
+    expect(session.remainingSeconds.value).toBe(before)
+    expect(repository.getDraft(practiceSet.id)?.isPaused).toBe(true)
+
+    const restored = usePracticeSession(practiceSet, { repository })
+    expect(restored.isPaused.value).toBe(true)
+    restored.togglePause()
+    restored.tick()
+    expect(restored.remainingSeconds.value).toBe(before - 1)
+  })
 })
 
