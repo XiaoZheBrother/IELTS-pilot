@@ -3,10 +3,12 @@ import type { LearningSnapshot } from './learningAssistant'
 import type { Attempt, PracticeSet, QuestionType } from './models'
 import { questionTypeLabels } from './questionLabels'
 import type { WritingAssessmentReport } from './writingAssessment'
+import { writingTasks } from '../data/writingTasks'
 
 export type LearningActionKind = 'practice' | 'errors' | 'writing' | 'plan'
 export type LearningPlanHorizon = 'today' | 'week'
-export type LearningPlanStatus = 'pending' | 'completed'
+export type LearningPlanStatus = 'pending' | 'started' | 'completed'
+export type LearningPlanPriority = 'high' | 'medium' | 'low'
 
 export interface ResolvedLearningAction {
   id: string
@@ -39,7 +41,9 @@ export interface ActionOutcome {
 export interface LearningPlanItem extends ResolvedLearningAction {
   horizon: LearningPlanHorizon
   status: LearningPlanStatus
+  priority: LearningPlanPriority
   createdAt: string
+  startedAt?: string
   completedAt?: string
   baseline?: ActionBaseline
 }
@@ -47,9 +51,21 @@ export interface LearningPlanItem extends ResolvedLearningAction {
 export interface LearningPlan {
   version: 1
   id: string
+  cycle: number
   createdAt: string
   updatedAt: string
   items: LearningPlanItem[]
+}
+
+export interface WeeklyLearningSummary {
+  weekStartedAt: string
+  readingAttempts: number
+  writingReports: number
+  completedActions: number
+  focusMinutes: number
+  accuracy: number | null
+  accuracyDelta: number | null
+  narrative: string
 }
 
 function encoded(value: string): string {
@@ -102,13 +118,16 @@ export function resolveCoachActions(
       sourceEvidenceIds: answer.conclusion.evidenceIds,
     }]
     if (action.kind === 'writing') {
-      const report = latestReport(reports, action.targetId)
+      const directReport = action.targetId ? reports.find(({ id }) => id === action.targetId) : undefined
+      const directTask = action.targetId ? writingTasks.find(({ id }) => id === action.targetId) : undefined
+      const report = directReport ?? (!directTask ? latestReport(reports) : null)
       return [{
         ...action,
         kind: 'writing',
-        to: report ? `/writing/report/${encoded(report.id)}` : '/writing',
-        estimatedMinutes: 20,
-        ...(report ? { targetId: report.id } : {}),
+        to: directTask ? `/writing?task=${encoded(directTask.id)}` : report
+          ? `/writing/report/${encoded(report.id)}${report.evidence.length ? '#evidence-1' : ''}` : '/writing',
+        estimatedMinutes: directTask?.recommendedMinutes ?? 20,
+        ...(directTask ? { targetId: directTask.id } : report ? { targetId: report.id } : {}),
         sourceEvidenceIds: answer.conclusion.evidenceIds,
       }]
     }
@@ -177,10 +196,26 @@ export function buildLearningPlan(
     id: action.id,
     horizon: index < 2 ? 'today' : 'week',
     status: 'pending',
+    priority: action.kind === 'practice'
+      ? weak ? 'high' : 'medium'
+      : action.kind === 'errors'
+        ? snapshot.reading.openErrorCount >= 3 ? 'high' : 'medium'
+        : 'medium',
     createdAt,
     ...(action.questionType ? { baseline: buildActionBaseline(action.questionType, attempts, createdAt) } : {}),
   }))
-  return { version: 1, id: `plan-${createdAt.slice(0, 10)}`, createdAt, updatedAt: createdAt, items }
+  return { version: 1, id: `plan-${createdAt.slice(0, 10)}`, cycle: 1, createdAt, updatedAt: createdAt, items }
+}
+
+export function markPlanItemStarted(plan: LearningPlan, itemId: string, now: Date = new Date()): LearningPlan {
+  const updatedAt = now.toISOString()
+  return {
+    ...plan,
+    updatedAt,
+    items: plan.items.map((item) => item.id === itemId && item.status === 'pending'
+      ? { ...item, status: 'started', startedAt: updatedAt }
+      : item),
+  }
 }
 
 export function togglePlanItem(plan: LearningPlan, itemId: string, now: Date = new Date()): LearningPlan {
@@ -190,7 +225,7 @@ export function togglePlanItem(plan: LearningPlan, itemId: string, now: Date = n
     updatedAt,
     items: plan.items.map((item) => item.id === itemId
       ? item.status === 'completed'
-        ? { ...item, status: 'pending', completedAt: undefined }
+        ? { ...item, status: 'pending', startedAt: undefined, completedAt: undefined }
         : { ...item, status: 'completed', completedAt: updatedAt }
       : item),
   }
@@ -208,7 +243,96 @@ export function refreshLearningPlan(
   const previous = new Map(current.items.map((item) => [`${item.kind}:${item.questionType ?? item.targetId ?? item.id}`, item]))
   next.items = next.items.map((item) => {
     const match = previous.get(`${item.kind}:${item.questionType ?? item.targetId ?? item.id}`)
-    return match?.status === 'completed' ? { ...item, status: 'completed', completedAt: match.completedAt } : item
+    return match ? {
+      ...item,
+      status: match.status,
+      createdAt: match.createdAt,
+      ...(match.startedAt ? { startedAt: match.startedAt } : {}),
+      ...(match.completedAt ? { completedAt: match.completedAt } : {}),
+      ...(match.baseline ? { baseline: match.baseline } : {}),
+    } : item
   })
-  return next
+  return { ...next, id: current.id, cycle: current.cycle || 1, createdAt: current.createdAt }
+}
+
+function itemCompletedByActivity(item: LearningPlanItem, attempts: Attempt[], reports: WritingAssessmentReport[]): boolean {
+  const after = Date.parse(item.startedAt ?? item.createdAt)
+  if (item.kind === 'practice') return attempts.some((attempt) => Date.parse(attempt.submittedAt) > after
+    && (!item.targetId || attempt.testId === item.targetId))
+  if (item.kind === 'writing') return reports.some((report) => Date.parse(report.generatedAt) > after
+    && (!item.targetId || report.taskId === item.targetId))
+  return false
+}
+
+export function reconcileLearningPlan(
+  current: LearningPlan,
+  snapshot: LearningSnapshot,
+  sets: PracticeSet[],
+  reports: WritingAssessmentReport[],
+  attempts: Attempt[],
+  now: Date = new Date(),
+): LearningPlan {
+  const completedAt = now.toISOString()
+  const newlyCompleted: LearningActionKind[] = []
+  const items = current.items.map((item) => {
+    if (item.status === 'completed' || !itemCompletedByActivity(item, attempts, reports)) return item
+    newlyCompleted.push(item.kind)
+    return { ...item, status: 'completed' as const, completedAt }
+  })
+  if (!newlyCompleted.length) return { ...current, items }
+
+  const nextCycle = (current.cycle || 1) + 1
+  const generated = buildLearningPlan(snapshot, sets, reports, attempts, now)
+  const additions = [...new Set(newlyCompleted)].flatMap((kind) => {
+    if (items.some((item) => item.kind === kind && item.status !== 'completed')) return []
+    const candidate = generated.items.find((item) => item.kind === kind)
+    return candidate ? [{ ...candidate, id: `${candidate.id}-round-${nextCycle}`, horizon: 'today' as const }] : []
+  })
+  return {
+    ...current,
+    cycle: nextCycle,
+    updatedAt: completedAt,
+    items: [...items, ...additions].slice(-12),
+  }
+}
+
+function startOfWeek(now: Date): Date {
+  const result = new Date(now)
+  result.setUTCHours(0, 0, 0, 0)
+  result.setUTCDate(result.getUTCDate() - ((result.getUTCDay() + 6) % 7))
+  return result
+}
+
+function attemptAccuracy(attempts: Attempt[]): number | null {
+  const totals = attempts.reduce((result, attempt) => ({
+    correct: result.correct + attempt.score.correct,
+    total: result.total + attempt.score.total,
+  }), { correct: 0, total: 0 })
+  return totals.total ? Math.round(totals.correct / totals.total * 100) : null
+}
+
+export function buildWeeklyLearningSummary(
+  plan: LearningPlan,
+  attempts: Attempt[],
+  reports: WritingAssessmentReport[],
+  now: Date = new Date(),
+): WeeklyLearningSummary {
+  const started = startOfWeek(now)
+  const previous = new Date(started)
+  previous.setUTCDate(previous.getUTCDate() - 7)
+  const currentAttempts = attempts.filter(({ submittedAt }) => Date.parse(submittedAt) >= started.getTime() && Date.parse(submittedAt) <= now.getTime())
+  const previousAttempts = attempts.filter(({ submittedAt }) => Date.parse(submittedAt) >= previous.getTime() && Date.parse(submittedAt) < started.getTime())
+  const accuracyValue = attemptAccuracy(currentAttempts)
+  const previousAccuracy = attemptAccuracy(previousAttempts)
+  const accuracyDelta = accuracyValue === null || previousAccuracy === null ? null : accuracyValue - previousAccuracy
+  const writingReports = reports.filter(({ generatedAt }) => Date.parse(generatedAt) >= started.getTime() && Date.parse(generatedAt) <= now.getTime()).length
+  const completedActions = plan.items.filter(({ completedAt: value }) => value && Date.parse(value) >= started.getTime() && Date.parse(value) <= now.getTime()).length
+  const focusMinutes = Math.round(currentAttempts.reduce((sum, attempt) => sum + attempt.durationSeconds, 0) / 60)
+  const comparison = accuracyDelta === null ? '还没有足够的前周样本用于比较。'
+    : `正确率较前周${accuracyDelta >= 0 ? '提高' : '下降'} ${Math.abs(accuracyDelta)} 个百分点。`
+  return {
+    weekStartedAt: started.toISOString(), readingAttempts: currentAttempts.length, writingReports,
+    completedActions, focusMinutes, accuracy: accuracyValue, accuracyDelta,
+    narrative: `本周完成 ${currentAttempts.length} 次阅读练习、${writingReports} 份写作反馈和 ${completedActions} 项计划，累计专注 ${focusMinutes} 分钟。${comparison}`,
+  }
 }

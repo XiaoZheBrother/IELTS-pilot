@@ -4,6 +4,8 @@ import { questionTypeLabels } from './questionLabels'
 import { WRITING_CRITERIA, type WritingAssessmentReport, type WritingCriterionId } from './writingAssessment'
 import type { CoachEvidenceEntry } from './coachAnswer'
 
+export const ASSISTANT_PROMPT_VERSION = 'assistant-v2' as const
+
 export type LearningTrend = 'insufficient' | 'improving' | 'stable' | 'declining'
 export type CoachConfidence = 'insufficient' | 'medium' | 'high'
 export type AssistantConversationRole = 'user' | 'assistant'
@@ -27,6 +29,7 @@ export interface LearningSnapshot {
   writing: {
     reportCount: number
     latestBand: number | null
+    latestSummary: string | null
     latestPriority: string | null
     latestReportId: string | null
     trend: LearningTrend
@@ -142,6 +145,7 @@ export function buildLearningSnapshot(
     writing: {
       reportCount: writingReports.length,
       latestBand: latestWriting?.overallBand ?? null,
+      latestSummary: latestWriting?.summary.trim().slice(0, 600) ?? null,
       latestPriority: latestWriting?.priorities[0] ?? null,
       latestReportId: latestWriting?.id ?? null,
       trend: writingTrend,
@@ -239,8 +243,9 @@ export function buildAssistantMessages(
   question: string,
   history: AssistantConversationMessage[] = [],
 ): AssistantProviderMessage[] {
-  const system = '你是 IELTS Pilot，一名基于本地学习数据提供建议的 IELTS 学习助手。只返回 JSON，不要 Markdown。必须使用 schemaVersion 1；结论、事实和推断只引用 EvidenceCatalog 中存在的 evidenceIds；样本不足时不得声称稳定、确定、一定或保证提分；不能声称这是官方 IELTS 成绩；最多给三条行动，kind 只能是 practice、errors、writing 或 plan，不得输出 URL。JSON 字段必须是 schemaVersion、conclusion、facts、inferences、actions。conclusion 和 inferences 包含 text、confidence、evidenceIds；facts 包含 text、evidenceIds；actions 包含 id、title、reason、kind 和可选 targetId。使用简体中文。'
+  const system = `你是 IELTS Pilot，一名基于本地学习数据提供建议的 IELTS 学习助手。提示词版本 ${ASSISTANT_PROMPT_VERSION}。只返回 JSON，不要 Markdown。必须使用 schemaVersion 1；结论、事实和推断只引用 EvidenceCatalog 中存在的 evidenceIds；样本不足时不得声称稳定、确定、一定或保证提分；任何样本下都不得预测分数将稳定到某一 Band，不得使用“有望提分”“最容易看到提分效果”等结果承诺，只能描述证据中已经发生的趋势；不能声称这是官方 IELTS 成绩；最多给三条行动，kind 只能是 practice、errors、writing 或 plan，不得输出 URL。JSON 字段必须是 schemaVersion、conclusion、facts、inferences、actions。conclusion 和 inferences 包含 text、confidence、evidenceIds；facts 包含 text、evidenceIds；actions 包含 id、title、reason、kind 和可选 targetId。使用简体中文。`
   const payload = {
+    promptVersion: ASSISTANT_PROMPT_VERSION,
     schemaVersion: 1,
     EvidenceCatalog: buildEvidenceCatalog(snapshot),
     LearningSnapshot: snapshot,

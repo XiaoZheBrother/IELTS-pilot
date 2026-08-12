@@ -1,9 +1,11 @@
 import {
   buildLocalCoachAnswer,
+  buildCoachStreamPreview,
   formatCoachAnswer,
   parseCoachAnswer,
   type CoachEvidenceEntry,
 } from '../../src/domain/coachAnswer'
+import regressionCases from '../fixtures/assistant/coach-regressions.json'
 
 const catalog: CoachEvidenceEntry[] = [
   { id: 'reading.attempt_count', label: '练习记录', value: '3 次', sampleSize: 3, confidence: 'high' },
@@ -45,6 +47,13 @@ describe('coach answer protocol', () => {
     }), sparse)).toThrow('确定性表述')
   })
 
+  it('allows cautious language that asks for more data before judging stability', () => {
+    const answer = parseCoachAnswer(response({
+      conclusion: { text: '增加一次练习后再判断是否已稳定在当前水平。', confidence: 'high', evidenceIds: ['reading.attempt_count'] },
+    }), catalog)
+    expect(answer.conclusion.text).toContain('判断是否')
+  })
+
   it('builds a deterministic local fallback from the catalog', () => {
     const answer = buildLocalCoachAnswer(catalog)
     expect(answer.schemaVersion).toBe(1)
@@ -59,5 +68,18 @@ describe('coach answer protocol', () => {
     }), catalog)
     expect(answer.schemaVersion).toBe(1)
     expect(answer.actions).toEqual([])
+  })
+
+  it('extracts only readable text fields from an incomplete streamed JSON answer', () => {
+    const preview = buildCoachStreamPreview('{"conclusion":{"text":"先处理标题配对"},"facts":[{"text":"当前正确率 40%')
+    expect(preview).toContain('先处理标题配对')
+    expect(preview).toContain('当前正确率 40%')
+    expect(preview).not.toContain('conclusion')
+  })
+
+  it.each(regressionCases)('keeps regression case $name inside the evidence boundary', (fixture) => {
+    const run = () => parseCoachAnswer(JSON.stringify(fixture.response), fixture.catalog as CoachEvidenceEntry[])
+    if (fixture.valid) expect(run()).toMatchObject({ schemaVersion: 1 })
+    else expect(run).toThrow(fixture.errorIncludes)
   })
 })

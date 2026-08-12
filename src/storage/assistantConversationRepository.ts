@@ -1,4 +1,4 @@
-import type { CoachAnswer } from '../domain/coachAnswer'
+import { containsUnsupportedOutcomePrediction, type CoachAnswer } from '../domain/coachAnswer'
 import { containsSensitiveCredential } from '../domain/sensitiveText'
 
 const STORAGE_KEY = 'ielts-pilot:assistant:v2'
@@ -13,6 +13,10 @@ export interface AssistantStoredMessage {
   content: string
   createdAt: string
   answer?: CoachAnswer
+  promptVersion?: string
+  model?: string
+  requestId?: string
+  usage?: { promptTokens: number; completionTokens: number; totalTokens: number }
 }
 
 export interface AssistantConversation {
@@ -65,10 +69,27 @@ function normalizeMessage(value: unknown): AssistantStoredMessage | null {
     || typeof value.content !== 'string' || typeof value.createdAt !== 'string') return null
   const content = value.content.trim().slice(0, MAX_CONTENT_LENGTH)
   if (!value.id.trim() || !content || !Number.isFinite(Date.parse(value.createdAt)) || containsSensitiveCredential(content)) return null
+  if (value.role === 'assistant' && (containsUnsupportedOutcomePrediction(content)
+    || (value.answer !== undefined && containsUnsupportedOutcomePrediction(JSON.stringify(value.answer))))) return null
+  const usage = isRecord(value.usage)
+    && Number.isInteger(value.usage.promptTokens) && Number(value.usage.promptTokens) >= 0 && Number(value.usage.promptTokens) <= 1_000_000
+    && Number.isInteger(value.usage.completionTokens) && Number(value.usage.completionTokens) >= 0 && Number(value.usage.completionTokens) <= 1_000_000
+    && Number.isInteger(value.usage.totalTokens) && Number(value.usage.totalTokens) >= 0 && Number(value.usage.totalTokens) <= 2_000_000
+      ? {
+          promptTokens: Number(value.usage.promptTokens), completionTokens: Number(value.usage.completionTokens),
+          totalTokens: Number(value.usage.totalTokens),
+        }
+      : undefined
+  const boundedMetadata = (entry: unknown, maximum: number): string | undefined => typeof entry === 'string' && entry.trim().length <= maximum
+    ? entry.trim() || undefined : undefined
   return {
     id: value.id.trim().slice(0, 180), role: value.role, content,
     createdAt: new Date(value.createdAt).toISOString(),
     ...(value.role === 'assistant' && validAnswer(value.answer) ? { answer: clone(value.answer) } : {}),
+    ...(value.role === 'assistant' && boundedMetadata(value.promptVersion, 80) ? { promptVersion: boundedMetadata(value.promptVersion, 80) } : {}),
+    ...(value.role === 'assistant' && boundedMetadata(value.model, 180) ? { model: boundedMetadata(value.model, 180) } : {}),
+    ...(value.role === 'assistant' && boundedMetadata(value.requestId, 180) ? { requestId: boundedMetadata(value.requestId, 180) } : {}),
+    ...(value.role === 'assistant' && usage ? { usage } : {}),
   }
 }
 

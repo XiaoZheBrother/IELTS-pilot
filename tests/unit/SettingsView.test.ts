@@ -49,6 +49,7 @@ describe('SettingsView', () => {
       client: {
         checkAvailability: async () => ({ available: false, mode: 'desktop', reason: 'configuration-required' }),
         chat: async () => ({ content: '', model: '', requestId: '' }),
+        chatStream: async () => ({ content: '', model: '', requestId: '' }),
         testConnection: async (_settings, apiKey) => ({ ok: apiKey === 'temporary-secret', model: 'coach-model', latencyMs: 120 }),
         saveCredential: async (apiKey) => { calls.push(`credential:${apiKey}`) },
         clearCredential: async () => { calls.push('clear-credential') },
@@ -78,7 +79,7 @@ describe('SettingsView', () => {
       repository: { get: () => ({ endpoint: 'https://api.openai.com/v1/chat/completions', model: 'gateway-model' }), save: () => undefined, clear: () => undefined },
       client: {
         checkAvailability: async () => ({ available: true, mode: 'gateway', model: 'gateway-model' }),
-        chat: async () => ({ content: '', model: '', requestId: '' }), testConnection: async () => ({ ok: true, model: 'gateway-model' }),
+        chat: async () => ({ content: '', model: '', requestId: '' }), chatStream: async () => ({ content: '', model: '', requestId: '' }), testConnection: async () => ({ ok: true, model: 'gateway-model' }),
         saveCredential: async () => undefined, clearCredential: async () => undefined,
       },
     }

@@ -1,0 +1,77 @@
+[
+  {
+    "name": "validated fact and cautious inference",
+    "valid": true,
+    "errorIncludes": "",
+    "catalog": [
+      { "id": "reading.attempt_count", "label": "练习记录", "value": "2 次", "sampleSize": 2, "confidence": "medium" }
+    ],
+    "response": {
+      "schemaVersion": 1,
+      "conclusion": { "text": "当前样本可以作为练习参考，但还不足以判断稳定趋势。", "confidence": "medium", "evidenceIds": ["reading.attempt_count"] },
+      "facts": [{ "text": "本地记录包含 2 次练习。", "evidenceIds": ["reading.attempt_count"] }],
+      "inferences": [],
+      "actions": [{ "id": "practice", "title": "继续计时练习", "reason": "补足可比较样本", "kind": "practice" }]
+    }
+  },
+  {
+    "name": "unknown evidence hallucination",
+    "valid": false,
+    "errorIncludes": "未知证据",
+    "catalog": [
+      { "id": "reading.attempt_count", "label": "练习记录", "value": "2 次", "sampleSize": 2, "confidence": "medium" }
+    ],
+    "response": {
+      "schemaVersion": 1,
+      "conclusion": { "text": "阅读已经进步。", "confidence": "medium", "evidenceIds": ["reading.fake_trend"] },
+      "facts": [],
+      "inferences": [],
+      "actions": []
+    }
+  },
+  {
+    "name": "unsupported stability claim",
+    "valid": false,
+    "errorIncludes": "确定性表述",
+    "catalog": [
+      { "id": "reading.average_band", "label": "平均估算", "value": "Band 7.0", "sampleSize": 2, "confidence": "insufficient" }
+    ],
+    "response": {
+      "schemaVersion": 1,
+      "conclusion": { "text": "你的成绩已经稳定在 Band 7。", "confidence": "insufficient", "evidenceIds": ["reading.average_band"] },
+      "facts": [],
+      "inferences": [],
+      "actions": []
+    }
+  },
+  {
+    "name": "unsupported projected stable band with strong evidence",
+    "valid": false,
+    "errorIncludes": "结果预测",
+    "catalog": [
+      { "id": "reading.average_band", "label": "平均估算", "value": "Band 6.8", "sampleSize": 12, "confidence": "high" }
+    ],
+    "response": {
+      "schemaVersion": 1,
+      "conclusion": { "text": "阅读正在进步。", "confidence": "high", "evidenceIds": ["reading.average_band"] },
+      "facts": [],
+      "inferences": [{ "text": "集中练习有助于把平均分稳定到 Band 7.0 以上。", "confidence": "high", "evidenceIds": ["reading.average_band"] }],
+      "actions": []
+    }
+  },
+  {
+    "name": "unsupported guaranteed action outcome",
+    "valid": false,
+    "errorIncludes": "结果预测",
+    "catalog": [
+      { "id": "writing.lowest_dimension", "label": "最低维度", "value": "连贯与衔接 6.5", "sampleSize": 4, "confidence": "high" }
+    ],
+    "response": {
+      "schemaVersion": 1,
+      "conclusion": { "text": "优先练习连贯与衔接。", "confidence": "high", "evidenceIds": ["writing.lowest_dimension"] },
+      "facts": [],
+      "inferences": [],
+      "actions": [{ "id": "writing", "title": "开始专项", "reason": "优先改进最容易看到提分效果。", "kind": "writing" }]
+    }
+  }
+]

@@ -3,6 +3,7 @@ import { createMemoryHistory, createRouter, RouterLink } from 'vue-router'
 import LearningAssistant from '../../src/components/LearningAssistant.vue'
 import { LEARNING_ASSISTANT_KEY, type LearningAssistantDependencies } from '../../src/components/learningAssistantDependencies'
 import type { Attempt } from '../../src/domain/models'
+import type { WritingAssessmentReport } from '../../src/domain/writingAssessment'
 
 const attempt: Attempt = {
   id: 'demo-attempt', testId: 'set-1', mode: 'practice', answers: { q1: ['B'], q2: ['A'], q3: ['B'], q4: ['A'], q5: ['B'] },
@@ -46,6 +47,11 @@ function dependencies(overrides: Partial<LearningAssistantDependencies> = {}): L
         facts: [{ text: '标题配对当前正确率为 40%。', evidenceIds: ['reading.weakest_type'] }],
         inferences: [], actions: [{ id: 'errors', title: '复盘错题', reason: '处理当前错误', kind: 'errors' }],
       }), model: 'coach-model', requestId: 'assistant-1' }),
+      chatStream: async (_request, _settings, options) => {
+        const response = await dependencies().client.chat({ messages: [] }, { endpoint: '', model: '' })
+        options.onDelta(response.content)
+        return response
+      },
       testConnection: async () => ({ ok: true }), saveCredential: async () => undefined, clearCredential: async () => undefined,
     },
     plan: { get: () => storedPlan, save: (value) => { storedPlan = value }, clear: () => { storedPlan = null } },
@@ -142,7 +148,7 @@ describe('LearningAssistant', () => {
 
   it('restores a failed question for an explicit retry', async () => {
     const deps = dependencies()
-    deps.client.chat = async () => { throw new Error('网络暂时不可用') }
+    deps.client.chatStream = async () => { throw new Error('网络暂时不可用') }
     const wrapper = await mountAssistant(deps)
     await openChat(wrapper)
     await wrapper.get('[data-testid="assistant-quick-question"]').trigger('click')
@@ -150,5 +156,63 @@ describe('LearningAssistant', () => {
 
     expect((wrapper.get('[aria-label="给 IELTS Pilot 发消息"]').element as HTMLTextAreaElement).value).toBe('分析我最近的学习状态')
     expect(wrapper.text()).toContain('可以直接再次发送重试')
+  })
+
+  it('records that a plan recommendation was opened', async () => {
+    const deps = dependencies()
+    const wrapper = await mountAssistant(deps)
+    await wrapper.get('[data-testid="assistant-orb"]').trigger('click')
+    const planTab = wrapper.findAll('[role="tab"]').find((item) => item.text().includes('计划'))!
+    await planTab.trigger('click')
+    await wrapper.get('.plan-go').trigger('click')
+    expect(deps.plan.get()?.items.some(({ status }) => status === 'started')).toBe(true)
+  })
+
+  it('shows real stream deltas, then records prompt and token metadata', async () => {
+    const deps = dependencies()
+    let finish!: () => void
+    deps.client.chatStream = async (_request, _settings, options) => {
+      options.onDelta('{"conclusion":{"text":"正在读取本地证据')
+      await new Promise<void>((resolve) => { finish = resolve })
+      return {
+        content: JSON.stringify({
+          schemaVersion: 1,
+          conclusion: { text: '先补足同题型样本。', confidence: 'high', evidenceIds: ['reading.weakest_type'] },
+          facts: [], inferences: [], actions: [],
+        }), model: 'stream-model', requestId: 'stream-1', usage: { promptTokens: 80, completionTokens: 20, totalTokens: 100 },
+      }
+    }
+    const wrapper = await mountAssistant(deps)
+    await openChat(wrapper)
+    await wrapper.get('[data-testid="assistant-quick-question"]').trigger('click')
+    await wrapper.vm.$nextTick()
+    expect(wrapper.text()).toContain('正在读取本地证据')
+    expect(wrapper.text()).toContain('实时接收')
+
+    finish()
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(wrapper.text()).toContain('assistant-v2')
+    expect(wrapper.text()).toContain('100 tokens')
+    expect(wrapper.text()).toContain('上下文 2/6 条')
+  })
+
+  it('shows a writing summary, evidence deep link, next task and rewrite exercise', async () => {
+    const report: WritingAssessmentReport = {
+      id: 'report-1', taskId: 'academic-task-2-library-balance', taskType: 'task-2', essay: 'Libraries support learners.', wordCount: 4,
+      overallBand: 6, summary: '立场清晰，但例证展开不足。', criteria: [
+        { criterion: 'task-response', band: 5.5, rationale: 'Examples need development.' },
+        { criterion: 'coherence-cohesion', band: 6, rationale: 'Logical.' },
+        { criterion: 'lexical-resource', band: 6.5, rationale: 'Suitable.' },
+        { criterion: 'grammatical-range-accuracy', band: 6, rationale: 'Mostly accurate.' },
+      ], strengths: [], priorities: ['Develop examples'],
+      evidence: [{ criterion: 'task-response', quote: 'Libraries support learners.', observation: 'The claim lacks a concrete example.', revision: 'Libraries support learners by offering quiet study space.' }],
+      model: 'fixture', promptVersion: 'writing-v1', generatedAt: '2026-08-12T08:00:00.000Z',
+    }
+    const wrapper = await mountAssistant(dependencies({ writing: { listReports: () => [report] } }))
+    await wrapper.get('[data-testid="assistant-orb"]').trigger('click')
+    expect(wrapper.text()).toContain('立场清晰，但例证展开不足')
+    expect(wrapper.text()).toContain('下一篇')
+    expect(wrapper.text()).toContain('改写练习')
+    expect(wrapper.get('[data-testid="writing-evidence-link"]').attributes('href')).toBe('/writing/report/report-1#evidence-1')
   })
 })

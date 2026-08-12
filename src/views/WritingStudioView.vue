@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, inject, onBeforeUnmount, reactive, ref, watch } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { writingTasks } from '../data/writingTasks'
 import {
   WRITING_PROMPT_VERSION, buildWritingMessages, countWritingWords, parseWritingAssessment,
@@ -13,11 +13,13 @@ import { WRITING_VIEW_KEY, type WritingViewDependencies } from '../platform/writ
 
 const injectedDependencies = inject(WRITING_VIEW_KEY, null)
 const router = injectedDependencies ? null : useRouter()
+const route = injectedDependencies ? null : useRoute()
 const dependencies: WritingViewDependencies = injectedDependencies ?? {
   repository: createBrowserWritingRepository(), client: createWritingAssessmentClient(), desktop: isDesktopRuntime(),
   now: () => new Date(), createId: () => crypto.randomUUID(), navigate: (path) => router!.push(path),
 }
-const selectedId = ref(writingTasks[0]!.id)
+const initialTaskId = route && typeof route.query.task === 'string' && writingTasks.some(({ id }) => id === route.query.task) ? route.query.task : writingTasks[0]!.id
+const selectedId = ref(initialTaskId)
 const essay = ref('')
 const elapsedSeconds = ref(0)
 const feedback = ref('')

@@ -35,5 +35,6 @@ describe('WritingReportView', () => {
     expect(wrapper.text()).toContain('fixture-model')
     expect(wrapper.text()).toContain('writing-v1')
     expect(wrapper.text()).toContain('不能替代官方 IELTS 成绩')
+    expect(wrapper.get('#evidence-1').text()).toContain('A balanced library')
   })
 })

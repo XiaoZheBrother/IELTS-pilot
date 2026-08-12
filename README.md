@@ -1,14 +1,14 @@
 # IELTS Pilot
 
-一个本地优先的 IELTS 阅读与写作练习工作台。v0.9.5 在完整训练闭环上加入带证据链、行动计划和多轮对话的 IELTS Pilot 学习助手。
+一个本地优先的 IELTS 阅读与写作练习工作台。v0.9.6 加入真实流式 AI、自动训练闭环、周总结和写作深度教练。
 
 > 本项目不是 IELTS 官方产品，不包含官方真题，也不提供官方成绩。
 
-> **Windows 用户：**[直接下载 IELTS Pilot v0.9.5 安装包（x64 Setup.exe）](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.5/IELTS.Pilot_0.9.5_x64-setup.exe)。其他版本与校验文件见 [GitHub Releases](https://github.com/XiaoZheBrother/IELTS-pilot/releases/latest)。
+> **Windows 用户：**[直接下载 IELTS Pilot v0.9.6 安装包（x64 Setup.exe）](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.6/IELTS.Pilot_0.9.6_x64-setup.exe)。其他版本与校验文件见 [GitHub Releases](https://github.com/XiaoZheBrother/IELTS-pilot/releases/latest)。
 
-完整的助手能力、证据边界、使用方法和验证说明，请参阅 [v0.9.5 产品功能说明书](docs/IELTS-Pilot-v0.95-产品功能说明书.md)。
+完整的助手能力、证据边界、使用方法和验证说明，请参阅 [v0.9.6 产品功能说明书](docs/IELTS-Pilot-v0.96-产品功能说明书.md)。
 
-## v0.9.5 功能清单
+## v0.9.6 功能清单
 
 - 5 篇项目原创英文文章，共 54 道题；其中前 3 篇组成 40 题、60 分钟完整阅读模考
 - 12 种题型：单选、多选、T/F/NG、Y/N/NG、标题配对、信息配对、特征配对、句尾配对、简答、句子填空、摘要选词、图示填空
@@ -36,6 +36,9 @@
 - 将建议解析为本地练习、错题筛选和写作报告链接；记录行动基线并在产生新练习后比较结果
 - 今天/本周计划保存在当前设备，支持完成、恢复和重新生成；写作趋势聚合最近五份报告，不发送作文原文
 - 对话支持停止、失败重试、重新生成、复制、删除、新建和切换历史；API Key 与疑似凭据不会进入对话存储
+- Web 与桌面端均支持真实流式输出和停止，安全 Markdown、上下文长度、Token 用量、模型与 `assistant-v2` 提示词版本可追溯
+- 练习入口自动标记开始，新成绩会自动完成对应计划并生成下一轮；周计划显示优先级、预计耗时、执行状态、前后正确率与每周总结
+- 助手读取有界写作摘要和四维趋势，支持报告证据深链、下一题推荐与只在本地构造的改写练习；辅助 Band 始终明确不等于官方成绩
 - AI 未配置或暂时离线时，本地诊断仍可使用；对话记录仅保存在当前设备，API Key 不进入浏览器存储或对话历史
 - 浏览器生产网关与 Tauri Rust HTTPS 命令两条安全调用路径；API Key 不进入浏览器存储、仓库或报告
 - 设置页一键生成演示档案，覆盖阅读历史、草稿、错题、收藏、批注、学习分析与写作报告
@@ -66,7 +69,7 @@ npm run serve:production -- --config "你的 AI 配置文件路径" --port 4390
 
 ## Windows 桌面版
 
-不需要开发环境时，直接下载并运行 [IELTS Pilot v0.9.5 Windows x64 安装包](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.5/IELTS.Pilot_0.9.5_x64-setup.exe)。已安装旧版时无需卸载，直接覆盖安装即可保留本地数据；v0.9.2 及以上也可使用应用内签名更新。安装器按当前用户安装，不需要管理员权限。由于当前开源构建没有商业 Authenticode 证书，Windows SmartScreen 可能显示“未知发布者”。
+不需要开发环境时，直接下载并运行 [IELTS Pilot v0.9.6 Windows x64 安装包](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.6/IELTS.Pilot_0.9.6_x64-setup.exe)。已安装旧版时无需卸载，直接覆盖安装即可保留本地数据；v0.9.2 及以上也可使用应用内签名更新。安装器按当前用户安装，不需要管理员权限。由于当前开源构建没有商业 Authenticode 证书，Windows SmartScreen 可能显示“未知发布者”。
 
 开发模式还需要 Rust stable、Microsoft C++ Build Tools 和 Windows WebView2：
 
@@ -167,4 +170,4 @@ src-tauri/          # Tauri 2 Rust 壳、权限与 NSIS 配置
 
 ## 路线图边界
 
-v0.1 至 v0.9.5 完成情况见 [ROADMAP.md](docs/ROADMAP.md)。托管账号服务、商业 Authenticode 证书、听力、词汇 SRS、口语 AI 辅助反馈、官方评分和付费能力不在本里程碑内。
+v0.1 至 v0.9.6 完成情况见 [ROADMAP.md](docs/ROADMAP.md)。托管账号服务、商业 Authenticode 证书、听力、词汇 SRS、口语 AI 辅助反馈、官方评分和付费能力不在本里程碑内。

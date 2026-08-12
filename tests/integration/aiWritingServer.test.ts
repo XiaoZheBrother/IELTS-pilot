@@ -50,6 +50,13 @@ describe('AI writing production gateway', () => {
       const chunks: Buffer[] = []
       for await (const chunk of request) chunks.push(Buffer.from(chunk))
       observedBody = JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown>
+      if (observedBody.stream === true) {
+        response.writeHead(200, { 'Content-Type': 'text/event-stream' })
+        response.write('data: {"id":"upstream-stream","model":"fixture-model","choices":[{"delta":{"content":"{\\"schema"}}]}\n\n')
+        response.write('data: {"choices":[{"delta":{"content":"Version\\":1}"}}],"usage":{"prompt_tokens":8,"completion_tokens":4,"total_tokens":12}}\n\n')
+        response.end('data: [DONE]\n\n')
+        return
+      }
       response.writeHead(200, { 'Content-Type': 'application/json' })
       response.end(JSON.stringify({ model: 'fixture-model', id: 'upstream-1', choices: [{ message: { content: '{"summary":"fixture"}' } }], usage: { total_tokens: 42 } }))
     })
@@ -95,6 +102,22 @@ describe('AI writing production gateway', () => {
     expect(observedAuthorization).toBe('Bearer integration-secret-value')
     expect(observedBody).toMatchObject({ model: 'fixture-model', temperature: 0.25 })
     expect(output()).not.toContain('integration-secret-value')
+  })
+
+  it('streams assistant deltas as bounded NDJSON and preserves final usage', async () => {
+    const response = await fetch(`${baseUrl}/api/v1/assistant/chat/stream`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [
+        { role: 'system', content: 'Use supplied facts only.' },
+        { role: 'user', content: '{"question":"分析状态"}' },
+      ] }),
+    })
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toContain('application/x-ndjson')
+    const events = (await response.text()).trim().split('\n').map((line) => JSON.parse(line) as Record<string, unknown>)
+    expect(events.filter(({ type }) => type === 'delta').map(({ delta }) => delta).join('')).toBe('{"schemaVersion":1}')
+    expect(events.at(-1)).toMatchObject({ type: 'done', response: { requestId: 'upstream-stream', usage: { totalTokens: 12 } } })
+    expect(observedBody).toMatchObject({ stream: true, stream_options: { include_usage: true } })
   })
 
   it('validates methods and body size, then injects the upstream credential server-side', async () => {

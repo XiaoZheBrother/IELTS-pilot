@@ -1,4 +1,4 @@
-import { buildAssistantMessages, buildCoachOverview, buildEvidenceCatalog, buildLearningSnapshot } from '../../src/domain/learningAssistant'
+import { ASSISTANT_PROMPT_VERSION, buildAssistantMessages, buildCoachOverview, buildEvidenceCatalog, buildLearningSnapshot } from '../../src/domain/learningAssistant'
 import type { Attempt } from '../../src/domain/models'
 import type { WritingAssessmentReport } from '../../src/domain/writingAssessment'
 
@@ -77,6 +77,8 @@ describe('learning assistant domain', () => {
     expect(serialized.match(/history-/g)).toHaveLength(6)
     expect(serialized).toContain('schemaVersion')
     expect(serialized).toContain('evidenceIds')
+    expect(serialized).toContain(ASSISTANT_PROMPT_VERSION)
+    expect(messages[0]!.content).toContain(`提示词版本 ${ASSISTANT_PROMPT_VERSION}`)
   })
 
   it('builds stable evidence ids with sample sizes and confidence', () => {
@@ -96,9 +98,11 @@ describe('learning assistant domain', () => {
   it('summarizes bounded writing trends without exposing essay or quote text', () => {
     const snapshot = buildLearningSnapshot([], [], [writingReport, previousWritingReport])
     expect(snapshot.writing).toMatchObject({ reportCount: 2, trend: 'improving', latestReportId: 'writing-1' })
+    expect(snapshot.writing.latestSummary).toBe('A focused response.')
     expect(snapshot.writing.criterionAverages[0]).toMatchObject({ averageBand: 6.3, sampleSize: 2 })
     expect(snapshot.writing.criterionDeltas[0]).toMatchObject({ delta: 0.5 })
     expect(snapshot.writing.repeatedPriorities[0]).toEqual({ text: 'Improve paragraph links', count: 2 })
     expect(JSON.stringify(buildAssistantMessages(snapshot, '下一步？'))).not.toContain(writingReport.essay)
+    expect(JSON.stringify(buildAssistantMessages(snapshot, '下一步？'))).toContain('A focused response.')
   })
 })

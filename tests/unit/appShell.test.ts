@@ -26,7 +26,7 @@ describe('App shell', () => {
       settings: { get: () => ({ endpoint: 'https://api.example.com/v1/chat/completions', model: 'fixture' }) },
       conversation: { list: () => [], save: () => undefined, clear: () => undefined, listConversations: () => [], activeConversationId: () => 'fixture', create: () => ({ id: 'fixture', title: '新对话', createdAt: '2026-08-12T00:00:00.000Z', updatedAt: '2026-08-12T00:00:00.000Z', messages: [] }), switchTo: () => true, remove: () => undefined, deleteMessage: () => undefined },
       plan: { get: () => null, save: () => undefined, clear: () => undefined },
-      client: { checkAvailability: async () => ({ available: false, mode: 'gateway', reason: 'unavailable' }), chat: async () => ({ content: '', model: '', requestId: '' }), testConnection: async () => ({ ok: false }), saveCredential: async () => undefined, clearCredential: async () => undefined },
+      client: { checkAvailability: async () => ({ available: false, mode: 'gateway', reason: 'unavailable' }), chat: async () => ({ content: '', model: '', requestId: '' }), chatStream: async () => ({ content: '', model: '', requestId: '' }), testConnection: async () => ({ ok: false }), saveCredential: async () => undefined, clearCredential: async () => undefined },
       now: () => new Date('2026-08-12T00:00:00.000Z'),
     }
     const wrapper = mount(App, { global: { plugins: [router], provide: { [LEARNING_ASSISTANT_KEY as symbol]: assistantDependencies } } })

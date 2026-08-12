@@ -143,6 +143,101 @@ async function chatAssistant(config, value, requestId) {
   } finally { clearTimeout(timeout) }
 }
 
+function assistantResponse(raw, config, requestId, content) {
+  return {
+    content,
+    model: typeof raw?.model === 'string' ? raw.model : config.model,
+    requestId: typeof raw?.id === 'string' ? raw.id : requestId,
+    usage: {
+      promptTokens: Number(raw?.usage?.prompt_tokens) || 0,
+      completionTokens: Number(raw?.usage?.completion_tokens) || 0,
+      totalTokens: Number(raw?.usage?.total_tokens) || 0,
+    },
+  }
+}
+
+async function streamAssistant(config, value, requestId, response) {
+  const { messages } = validateAssistantChat(value)
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 90_000)
+  const cancel = () => controller.abort()
+  response.once('close', cancel)
+  try {
+    const upstream = await fetch(config.endpoint, {
+      method: 'POST', signal: controller.signal,
+      headers: { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json', 'X-Client-Request-Id': requestId },
+      body: JSON.stringify({
+        model: config.model, messages, thinking: { type: 'disabled' }, temperature: 0.25, max_tokens: 1_200,
+        response_format: { type: 'json_object' }, stream: true, stream_options: { include_usage: true },
+      }),
+    })
+    if (!upstream.ok) {
+      const error = new Error(`AI provider returned HTTP ${upstream.status}.`)
+      error.code = upstream.status === 429 ? 'UPSTREAM_RATE_LIMIT' : upstream.status >= 500 ? 'UPSTREAM_UNAVAILABLE' : 'UPSTREAM_REJECTED'
+      error.status = upstream.status === 429 ? 429 : 502
+      throw error
+    }
+    response.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store', Connection: 'keep-alive' })
+    const emit = (event) => response.write(`${JSON.stringify(event)}\n`)
+    const contentType = upstream.headers.get('content-type') ?? ''
+    if (!contentType.includes('text/event-stream')) {
+      const raw = await upstream.json()
+      const content = raw?.choices?.[0]?.message?.content
+      if (typeof content !== 'string' || !content.trim()) throw Object.assign(new Error('AI provider returned no assistant content.'), { code: 'UPSTREAM_INVALID_RESPONSE' })
+      emit({ type: 'delta', delta: content })
+      const result = assistantResponse(raw, config, requestId, content)
+      emit({ type: 'done', response: result })
+      response.end()
+      return result
+    }
+
+    if (!upstream.body) throw Object.assign(new Error('AI provider returned no response stream.'), { code: 'UPSTREAM_INVALID_RESPONSE' })
+    const decoder = new TextDecoder()
+    let buffered = ''
+    let content = ''
+    let metadata = {}
+    const consume = (line) => {
+      const data = line.startsWith('data:') ? line.slice(5).trim() : ''
+      if (!data || data === '[DONE]') return
+      let raw
+      try { raw = JSON.parse(data) } catch { throw Object.assign(new Error('AI provider returned invalid stream data.'), { code: 'UPSTREAM_INVALID_RESPONSE' }) }
+      metadata = {
+        ...metadata,
+        ...(typeof raw.id === 'string' ? { id: raw.id } : {}),
+        ...(typeof raw.model === 'string' ? { model: raw.model } : {}),
+        ...(raw.usage && typeof raw.usage === 'object' ? { usage: raw.usage } : {}),
+      }
+      const delta = raw?.choices?.[0]?.delta?.content
+      if (typeof delta === 'string' && delta) { content += delta; emit({ type: 'delta', delta }) }
+    }
+    for await (const chunk of upstream.body) {
+      buffered += decoder.decode(chunk, { stream: true })
+      const lines = buffered.split(/\r?\n/u)
+      buffered = lines.pop() ?? ''
+      lines.forEach(consume)
+    }
+    buffered += decoder.decode()
+    if (buffered.trim()) consume(buffered)
+    if (!content.trim()) throw Object.assign(new Error('AI provider returned no assistant content.'), { code: 'UPSTREAM_INVALID_RESPONSE' })
+    const result = assistantResponse(metadata, config, requestId, content)
+    emit({ type: 'done', response: result })
+    response.end()
+    return result
+  } catch (error) {
+    const failure = error?.name === 'AbortError'
+      ? Object.assign(new Error('AI provider request timed out or was stopped.'), { code: 'UPSTREAM_TIMEOUT' })
+      : error
+    if (response.headersSent) {
+      if (!response.writableEnded) response.end(`${JSON.stringify({ type: 'error', code: failure?.code || 'UPSTREAM_ERROR', message: failure instanceof Error ? failure.message : 'AI stream failed.' })}\n`)
+      return null
+    }
+    throw failure
+  } finally {
+    clearTimeout(timeout)
+    response.off('close', cancel)
+  }
+}
+
 async function serveStatic(distRoot, pathname, response, spaFallback = true) {
   const decoded = decodeURIComponent(pathname)
   const requested = resolve(distRoot, `.${decoded}`)
@@ -192,6 +287,12 @@ export function createAiWritingServer({ config, dist, samples = 'examples', logg
         const result = await chatAssistant(config, await readBody(request), requestId)
         logger({ event: 'assistant_chat', requestId, model: result.model, status: 'ok', durationMs: Date.now() - started })
         return json(response, 200, result)
+      }
+      if (url.pathname === '/api/v1/assistant/chat/stream') {
+        if (request.method !== 'POST') return json(response, 405, { code: 'METHOD_NOT_ALLOWED', message: 'Use POST.' }, { Allow: 'POST' })
+        const result = await streamAssistant(config, await readBody(request), requestId, response)
+        logger({ event: 'assistant_chat_stream', requestId, model: result?.model ?? config.model, status: result ? 'ok' : 'error', durationMs: Date.now() - started })
+        return
       }
       if (request.method === 'GET' || request.method === 'HEAD') {
         if (url.pathname.startsWith('/examples/') && await serveStatic(sampleRoot, url.pathname.slice('/examples'.length), response, false)) return

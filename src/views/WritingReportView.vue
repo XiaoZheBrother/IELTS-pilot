@@ -42,7 +42,7 @@ function criterionLabel(id: string): string {
 
     <section class="writing-evidence">
       <header class="index-heading"><div><p class="section-kicker">Source-backed evidence</p><h2>可回溯证据与改写建议</h2></div><span>{{ report.evidence.length }} 条已验证引用</span></header>
-      <article v-for="(item, index) in report.evidence" :key="`${item.quote}-${index}`">
+      <article v-for="(item, index) in report.evidence" :id="`evidence-${index + 1}`" :key="`${item.quote}-${index}`">
         <span>{{ String(index + 1).padStart(2, '0') }}</span><blockquote>“{{ item.quote }}”</blockquote>
         <div><small>{{ criterionLabel(item.criterion) }}</small><p>{{ item.observation }}</p><strong>建议改写</strong><p>{{ item.revision }}</p></div>
       </article>
