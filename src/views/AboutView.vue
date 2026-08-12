@@ -12,7 +12,7 @@ import { APP_NAME, APP_VERSION, platformLabel, runtimeLabel } from '../platform/
       <div><span>版本</span><strong>{{ APP_VERSION }}</strong></div>
       <div><span>运行环境</span><strong>{{ runtimeLabel() }}</strong></div>
       <div><span>系统</span><strong>{{ platformLabel() }}</strong></div>
-      <div><span>数据策略</span><strong>仅本地保存</strong></div>
+      <div><span>数据策略</span><strong>本地优先 · 可选密文同步</strong></div>
     </section>
     <section class="about-copy">
       <article><p class="section-kicker">Content statement</p><h2>内容与评分说明</h2><p>内置文章与题目为本项目原创练习材料，不是官方 IELTS 真题。Band 分数依据公开的阅读原始分换算区间做近似估算，仅用于学习反馈，不代表官方成绩。</p></article>

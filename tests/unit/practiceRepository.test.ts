@@ -14,7 +14,7 @@ const attempt: Attempt = {
 }
 const importedSet = { id: 'imported-set', title: 'Imported set' } as PracticeSet
 
-describe('practice repository v3', () => {
+describe('practice repository v4', () => {
   it('persists drafts, attempts and imported sets across instances', () => {
     const storage = createMemoryStorage()
     const first = createPracticeRepository(storage)
@@ -93,7 +93,7 @@ describe('practice repository v3', () => {
     expect(repository.listAnnotations()).toEqual([])
   })
 
-  it('stores installed packages and author drafts and exports a version three backup', () => {
+  it('stores installed packages and author drafts and exports a version four backup', () => {
     const repository = createPracticeRepository(createMemoryStorage())
     const installed: InstalledContentPackage = {
       packageId: 'sample-pack', name: 'Sample pack', version: '1.0.0', owner: 'Example Author',
@@ -108,11 +108,77 @@ describe('practice repository v3', () => {
     expect(repository.getInstalledPackage('sample-pack')).toEqual(installed)
     expect(repository.listImportedSets()).toEqual([importedSet])
     expect(repository.listAuthorDrafts()).toEqual([authorDraft])
-    expect(JSON.parse(repository.exportBackup()).version).toBe(3)
+    expect(JSON.parse(repository.exportBackup()).version).toBe(4)
     repository.removeInstalledPackage('sample-pack')
     repository.removeAuthorDraft('draft-1')
     expect(repository.listInstalledPackages()).toEqual([])
     expect(repository.listAuthorDrafts()).toEqual([])
+  })
+
+  it('migrates a version three backup and assigns deterministic entity clocks', () => {
+    const storage = createMemoryStorage()
+    storage.setItem('ielts-pilot:practice:v3', JSON.stringify({
+      version: 3,
+      drafts: { [draft.testId]: draft },
+      attempts: [attempt],
+      installedPackages: [], authorDrafts: [], annotations: [],
+      favoriteSetIds: ['shade-networks'], favoriteQuestionIds: [], masteredErrorKeys: [],
+      preferences: { theme: 'paper', fontScale: 1, lineHeight: 1.85, readingWidth: 850, defaultTimedPractice: true },
+    }))
+
+    const backup = JSON.parse(createPracticeRepository(storage).exportBackup())
+    expect(backup.version).toBe(4)
+    expect(backup.clocks['draft:shade-networks']).toBe(draft.updatedAt)
+    expect(backup.clocks['attempt:attempt-1']).toBe(attempt.submittedAt)
+    expect(backup.clocks['favorite-set:shade-networks']).toBe('1970-01-01T00:00:00.000Z')
+    expect(backup.tombstones).toEqual({})
+  })
+
+  it('records strictly increasing clocks and deletion tombstones', () => {
+    const storage = createMemoryStorage()
+    const timestamps = [
+      '2026-08-12T01:00:00.000Z',
+      '2026-08-12T01:00:00.000Z',
+      '2026-08-12T00:59:00.000Z',
+    ]
+    const repository = createPracticeRepository(storage, () => new Date(timestamps.shift() ?? '2026-08-12T01:00:00.000Z'))
+
+    repository.saveDraft(draft)
+    const first = JSON.parse(repository.exportBackup()).clocks['draft:shade-networks']
+    repository.removeDraft(draft.testId)
+    const removed = JSON.parse(repository.exportBackup())
+    repository.saveDraft(draft)
+    const recreated = JSON.parse(repository.exportBackup())
+
+    expect(first).toBe('2026-08-12T01:00:00.000Z')
+    expect(removed.clocks['draft:shade-networks']).toBeUndefined()
+    expect(removed.tombstones['draft:shade-networks']).toBe('2026-08-12T01:00:00.001Z')
+    expect(recreated.tombstones['draft:shade-networks']).toBeUndefined()
+    expect(recreated.clocks['draft:shade-networks']).toBe('2026-08-12T01:00:00.002Z')
+  })
+
+  it('tracks boolean collection removals as tombstones', () => {
+    const repository = createPracticeRepository(createMemoryStorage(), () => new Date('2026-08-12T02:00:00.000Z'))
+    repository.toggleFavoriteSet('shade-networks')
+    repository.toggleFavoriteSet('shade-networks')
+    repository.setErrorMastered('attempt-1:shade_q1', true)
+    repository.setErrorMastered('attempt-1:shade_q1', false)
+
+    const backup = JSON.parse(repository.exportBackup())
+    expect(backup.favoriteSetIds).toEqual([])
+    expect(backup.tombstones['favorite-set:shade-networks']).toBeDefined()
+    expect(backup.masteredErrorKeys).toEqual([])
+    expect(backup.tombstones['mastered-error:attempt-1:shade_q1']).toBeDefined()
+  })
+
+  it('imports version four clocks and tombstones without losing them', () => {
+    const source = createPracticeRepository(createMemoryStorage(), () => new Date('2026-08-12T03:00:00.000Z'))
+    source.saveDraft(draft)
+    source.removeDraft(draft.testId)
+
+    const target = createPracticeRepository(createMemoryStorage())
+    expect(target.importBackup(source.exportBackup())).toMatchObject({ ok: true })
+    expect(JSON.parse(target.exportBackup()).tombstones['draft:shade-networks']).toBe('2026-08-12T03:00:00.001Z')
   })
 })
 

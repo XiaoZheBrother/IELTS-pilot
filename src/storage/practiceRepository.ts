@@ -3,16 +3,18 @@ import type {
   QuestionType, ReaderPreferences, ReadingAnswers,
 } from '../domain/models'
 
-const STORAGE_KEY = 'ielts-pilot:practice:v3'
+const STORAGE_KEY = 'ielts-pilot:practice:v4'
+const V3_STORAGE_KEY = 'ielts-pilot:practice:v3'
 const V2_STORAGE_KEY = 'ielts-pilot:practice:v2'
 const LEGACY_STORAGE_KEY = 'ielts-pilot:practice:v1'
+const EPOCH = '1970-01-01T00:00:00.000Z'
 
 export const DEFAULT_READER_PREFERENCES: ReaderPreferences = {
   theme: 'paper', fontScale: 1, lineHeight: 1.85, readingWidth: 850, defaultTimedPractice: true,
 }
 
-interface PersistedPracticeState {
-  version: 3
+export interface PracticeBackupV4 {
+  version: 4
   drafts: Record<string, PracticeDraft>
   attempts: Attempt[]
   installedPackages: InstalledContentPackage[]
@@ -22,6 +24,8 @@ interface PersistedPracticeState {
   favoriteSetIds: string[]
   favoriteQuestionIds: string[]
   masteredErrorKeys: string[]
+  clocks: Record<string, string>
+  tombstones: Record<string, string>
 }
 
 export type BackupImportResult =
@@ -61,11 +65,11 @@ export interface PracticeRepository {
   importBackup: (value: string) => BackupImportResult
 }
 
-function emptyState(): PersistedPracticeState {
+function emptyState(): PracticeBackupV4 {
   return {
-    version: 3, drafts: {}, attempts: [], installedPackages: [], authorDrafts: [],
+    version: 4, drafts: {}, attempts: [], installedPackages: [], authorDrafts: [],
     preferences: { ...DEFAULT_READER_PREFERENCES }, annotations: [], favoriteSetIds: [],
-    favoriteQuestionIds: [], masteredErrorKeys: [],
+    favoriteQuestionIds: [], masteredErrorKeys: [], clocks: {}, tombstones: {},
   }
 }
 
@@ -95,8 +99,7 @@ function migrateDraft(value: unknown): PracticeDraft | null {
     testId: value.testId, answers: normalizeAnswers(value.answers),
     currentIndex: typeof value.currentIndex === 'number' ? value.currentIndex : 0,
     remainingSeconds: typeof value.remainingSeconds === 'number' ? value.remainingSeconds : 0,
-    updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : new Date(0).toISOString(),
-    flags: strings(value.flags),
+    updatedAt: validTimestamp(value.updatedAt), flags: strings(value.flags),
   }
   if (typeof value.isPaused === 'boolean') draft.isPaused = value.isPaused
   return draft
@@ -107,7 +110,8 @@ function migrateAttempt(value: unknown): Attempt | null {
   const items = Array.isArray(value.score.items) ? value.score.items.filter(isRecord).map((item) => ({
     questionId: typeof item.questionId === 'string' ? item.questionId : '',
     questionType: (typeof item.questionType === 'string' ? item.questionType : 'multiple-choice') as QuestionType,
-    isCorrect: Boolean(item.isCorrect), givenAnswer: Array.isArray(item.givenAnswer) ? strings(item.givenAnswer) : typeof item.givenAnswer === 'string' ? [item.givenAnswer] : [],
+    isCorrect: Boolean(item.isCorrect),
+    givenAnswer: Array.isArray(item.givenAnswer) ? strings(item.givenAnswer) : typeof item.givenAnswer === 'string' ? [item.givenAnswer] : [],
     acceptedAnswers: Array.isArray(item.acceptedAnswers) ? item.acceptedAnswers as Array<string | string[]> : [],
     explanation: typeof item.explanation === 'string' ? item.explanation : '',
     sourceRef: isRecord(item.sourceRef) && typeof item.sourceRef.sectionIndex === 'number' && typeof item.sourceRef.paragraphIndex === 'number'
@@ -122,8 +126,7 @@ function migrateAttempt(value: unknown): Attempt | null {
       percentage: Number(value.score.percentage) || 0, normalizedRaw40: Number(value.score.normalizedRaw40) || 0,
       approximateBand: Number(value.score.approximateBand) || 0, scoringVersion: 'reading-v2', items,
     },
-    submittedAt: typeof value.submittedAt === 'string' ? value.submittedAt : new Date(0).toISOString(),
-    durationSeconds: Number(value.durationSeconds) || 0,
+    submittedAt: validTimestamp(value.submittedAt), durationSeconds: Number(value.durationSeconds) || 0,
     submissionReason: value.submissionReason === 'time-expired' ? 'time-expired' : 'manual',
   }
 }
@@ -139,7 +142,30 @@ function preferences(value: unknown): ReaderPreferences {
   }
 }
 
-function migrateState(value: unknown): PersistedPracticeState | null {
+function validTimestamp(value: unknown, fallback = EPOCH): string {
+  return typeof value === 'string' && Number.isFinite(Date.parse(value)) ? new Date(value).toISOString() : fallback
+}
+
+function timestampRecord(value: unknown): Record<string, string> {
+  if (!isRecord(value)) return {}
+  return Object.fromEntries(Object.entries(value).flatMap(([key, timestamp]) =>
+    typeof timestamp === 'string' && Number.isFinite(Date.parse(timestamp)) ? [[key, new Date(timestamp).toISOString()]] : [],
+  ))
+}
+
+function seedLegacyClocks(state: PracticeBackupV4): void {
+  Object.values(state.drafts).forEach((draft) => { state.clocks[`draft:${draft.testId}`] = validTimestamp(draft.updatedAt) })
+  state.attempts.forEach((attempt) => { state.clocks[`attempt:${attempt.id}`] = validTimestamp(attempt.submittedAt) })
+  state.installedPackages.forEach((item) => { state.clocks[`package:${item.packageId}`] = validTimestamp(item.installedAt) })
+  state.authorDrafts.forEach((draft) => { state.clocks[`author-draft:${draft.id}`] = validTimestamp(draft.updatedAt) })
+  state.annotations.forEach((annotation) => { state.clocks[`annotation:${annotation.id}`] = validTimestamp(annotation.updatedAt) })
+  state.favoriteSetIds.forEach((id) => { state.clocks[`favorite-set:${id}`] = EPOCH })
+  state.favoriteQuestionIds.forEach((id) => { state.clocks[`favorite-question:${id}`] = EPOCH })
+  state.masteredErrorKeys.forEach((id) => { state.clocks[`mastered-error:${id}`] = EPOCH })
+  state.clocks['preferences:reader'] = EPOCH
+}
+
+function migrateState(value: unknown): PracticeBackupV4 | null {
   if (!isRecord(value) || !isRecord(value.drafts) || !Array.isArray(value.attempts)) return null
   const base = emptyState()
   base.drafts = Object.fromEntries(Object.entries(value.drafts).flatMap(([key, candidate]) => {
@@ -147,7 +173,7 @@ function migrateState(value: unknown): PersistedPracticeState | null {
     return draft ? [[key, draft]] : []
   }))
   base.attempts = value.attempts.map(migrateAttempt).filter((attempt): attempt is Attempt => Boolean(attempt))
-  if (value.version === 3) {
+  if (value.version === 3 || value.version === 4) {
     base.installedPackages = Array.isArray(value.installedPackages) ? clone(value.installedPackages) as InstalledContentPackage[] : []
     base.authorDrafts = Array.isArray(value.authorDrafts) ? clone(value.authorDrafts) as AuthorPackageDraft[] : []
     base.preferences = preferences(value.preferences)
@@ -155,27 +181,49 @@ function migrateState(value: unknown): PersistedPracticeState | null {
     base.favoriteSetIds = strings(value.favoriteSetIds)
     base.favoriteQuestionIds = strings(value.favoriteQuestionIds)
     base.masteredErrorKeys = strings(value.masteredErrorKeys)
+    if (value.version === 4) {
+      base.clocks = timestampRecord(value.clocks)
+      base.tombstones = timestampRecord(value.tombstones)
+    } else {
+      seedLegacyClocks(base)
+    }
   } else if (Array.isArray(value.importedSets) && value.importedSets.length) {
     base.installedPackages = [{
       packageId: 'legacy-imports', name: '旧版导入内容', version: '1.0.0', owner: '本地用户',
       license: 'User supplied', note: 'Migrated from IELTS Pilot storage version 2.',
-      digest: 'legacy', installedAt: new Date(0).toISOString(), sets: clone(value.importedSets) as PracticeSet[],
+      digest: 'legacy', installedAt: EPOCH, sets: clone(value.importedSets) as PracticeSet[],
     }]
+    seedLegacyClocks(base)
+  } else {
+    seedLegacyClocks(base)
   }
   return base
 }
 
-function parseState(value: string | null): PersistedPracticeState | null {
+function parseState(value: string | null): PracticeBackupV4 | null {
   if (!value) return null
   try { return migrateState(JSON.parse(value) as unknown) } catch { return null }
 }
 
-function readState(storage: Storage): PersistedPracticeState {
-  return parseState(storage.getItem(STORAGE_KEY)) ?? parseState(storage.getItem(V2_STORAGE_KEY)) ?? parseState(storage.getItem(LEGACY_STORAGE_KEY)) ?? emptyState()
+function readState(storage: Storage): PracticeBackupV4 {
+  return parseState(storage.getItem(STORAGE_KEY))
+    ?? parseState(storage.getItem(V3_STORAGE_KEY))
+    ?? parseState(storage.getItem(V2_STORAGE_KEY))
+    ?? parseState(storage.getItem(LEGACY_STORAGE_KEY))
+    ?? emptyState()
 }
 
-function writeState(storage: Storage, state: PersistedPracticeState): void {
+function writeState(storage: Storage, state: PracticeBackupV4): void {
   storage.setItem(STORAGE_KEY, JSON.stringify(state))
+}
+
+export function parsePracticeBackup(value: string | unknown): PracticeBackupV4 | null {
+  if (typeof value !== 'string') return migrateState(value)
+  try { return migrateState(JSON.parse(value) as unknown) } catch { return null }
+}
+
+export function serializePracticeBackup(state: PracticeBackupV4): string {
+  return JSON.stringify(state, null, 2)
 }
 
 function toggle(items: string[], id: string): { items: string[]; active: boolean } {
@@ -183,46 +231,78 @@ function toggle(items: string[], id: string): { items: string[]; active: boolean
   return { active, items: active ? [...items, id] : items.filter((item) => item !== id) }
 }
 
-export function createPracticeRepository(storage: Storage): PracticeRepository {
+function nextTimestamp(state: PracticeBackupV4, key: string, now: () => Date): string {
+  const candidate = validTimestamp(now().toISOString())
+  const previous = state.clocks[key] ?? state.tombstones[key]
+  if (!previous || Date.parse(candidate) > Date.parse(previous)) return candidate
+  return new Date(Date.parse(previous) + 1).toISOString()
+}
+
+function markPresent(state: PracticeBackupV4, key: string, now: () => Date): void {
+  state.clocks[key] = nextTimestamp(state, key, now)
+  delete state.tombstones[key]
+}
+
+function markRemoved(state: PracticeBackupV4, key: string, now: () => Date): void {
+  state.tombstones[key] = nextTimestamp(state, key, now)
+  delete state.clocks[key]
+}
+
+export function createPracticeRepository(storage: Storage, now: () => Date = () => new Date()): PracticeRepository {
   return {
     getDraft(testId) { return clone(readState(storage).drafts[testId] ?? null) },
-    saveDraft(draft) { const state = readState(storage); state.drafts[draft.testId] = clone(draft); writeState(storage, state) },
-    removeDraft(testId) { const state = readState(storage); delete state.drafts[testId]; writeState(storage, state) },
+    saveDraft(draft) { const state = readState(storage); state.drafts[draft.testId] = clone(draft); markPresent(state, `draft:${draft.testId}`, now); writeState(storage, state) },
+    removeDraft(testId) { const state = readState(storage); delete state.drafts[testId]; markRemoved(state, `draft:${testId}`, now); writeState(storage, state) },
     listAttempts() { return clone(readState(storage).attempts).sort((a, b) => Date.parse(b.submittedAt) - Date.parse(a.submittedAt)) },
     getAttempt(attemptId) { return clone(readState(storage).attempts.find(({ id }) => id === attemptId) ?? null) },
-    saveAttempt(attempt) { const state = readState(storage); state.attempts = [clone(attempt), ...state.attempts.filter(({ id }) => id !== attempt.id)]; writeState(storage, state) },
+    saveAttempt(attempt) { const state = readState(storage); state.attempts = [clone(attempt), ...state.attempts.filter(({ id }) => id !== attempt.id)]; markPresent(state, `attempt:${attempt.id}`, now); writeState(storage, state) },
     listImportedSets() { return clone(readState(storage).installedPackages.flatMap(({ sets }) => sets)) },
     saveImportedSets(sets) {
-      const state = readState(storage); const existing = state.installedPackages.find(({ packageId }) => packageId === 'legacy-imports')
-      const byId = new Map((existing?.sets ?? []).map((set) => [set.id, set])); sets.forEach((set) => byId.set(set.id, clone(set)))
-      const legacy: InstalledContentPackage = { packageId: 'legacy-imports', name: '兼容导入内容', version: '1.0.0', owner: '本地用户', license: 'User supplied', note: 'Imported through schema version 1.', digest: 'legacy', installedAt: new Date().toISOString(), sets: [...byId.values()] }
-      state.installedPackages = [...state.installedPackages.filter(({ packageId }) => packageId !== legacy.packageId), legacy]; writeState(storage, state)
+      const state = readState(storage)
+      const existing = state.installedPackages.find(({ packageId }) => packageId === 'legacy-imports')
+      const byId = new Map((existing?.sets ?? []).map((set) => [set.id, set]))
+      sets.forEach((set) => byId.set(set.id, clone(set)))
+      const legacy: InstalledContentPackage = {
+        packageId: 'legacy-imports', name: '兼容导入内容', version: '1.0.0', owner: '本地用户',
+        license: 'User supplied', note: 'Imported through schema version 1.', digest: 'legacy',
+        installedAt: new Date().toISOString(), sets: [...byId.values()],
+      }
+      state.installedPackages = [...state.installedPackages.filter(({ packageId }) => packageId !== legacy.packageId), legacy]
+      markPresent(state, `package:${legacy.packageId}`, now)
+      writeState(storage, state)
     },
     listInstalledPackages() { return clone(readState(storage).installedPackages) },
     getInstalledPackage(packageId) { return clone(readState(storage).installedPackages.find((item) => item.packageId === packageId) ?? null) },
-    saveInstalledPackage(contentPackage) { const state = readState(storage); state.installedPackages = [...state.installedPackages.filter(({ packageId }) => packageId !== contentPackage.packageId), clone(contentPackage)]; writeState(storage, state) },
-    replaceInstalledPackages(packages) { const state = readState(storage); state.installedPackages = clone(packages); writeState(storage, state) },
-    removeInstalledPackage(packageId) { const state = readState(storage); state.installedPackages = state.installedPackages.filter((item) => item.packageId !== packageId); writeState(storage, state) },
+    saveInstalledPackage(contentPackage) { const state = readState(storage); state.installedPackages = [...state.installedPackages.filter(({ packageId }) => packageId !== contentPackage.packageId), clone(contentPackage)]; markPresent(state, `package:${contentPackage.packageId}`, now); writeState(storage, state) },
+    replaceInstalledPackages(packages) {
+      const state = readState(storage)
+      const incoming = new Set(packages.map(({ packageId }) => packageId))
+      state.installedPackages.filter(({ packageId }) => !incoming.has(packageId)).forEach(({ packageId }) => markRemoved(state, `package:${packageId}`, now))
+      packages.forEach(({ packageId }) => markPresent(state, `package:${packageId}`, now))
+      state.installedPackages = clone(packages)
+      writeState(storage, state)
+    },
+    removeInstalledPackage(packageId) { const state = readState(storage); state.installedPackages = state.installedPackages.filter((item) => item.packageId !== packageId); markRemoved(state, `package:${packageId}`, now); writeState(storage, state) },
     listAuthorDrafts() { return clone(readState(storage).authorDrafts).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)) },
     getAuthorDraft(id) { return clone(readState(storage).authorDrafts.find((item) => item.id === id) ?? null) },
-    saveAuthorDraft(draft) { const state = readState(storage); state.authorDrafts = [clone(draft), ...state.authorDrafts.filter(({ id }) => id !== draft.id)]; writeState(storage, state) },
-    removeAuthorDraft(id) { const state = readState(storage); state.authorDrafts = state.authorDrafts.filter((item) => item.id !== id); writeState(storage, state) },
+    saveAuthorDraft(draft) { const state = readState(storage); state.authorDrafts = [clone(draft), ...state.authorDrafts.filter(({ id }) => id !== draft.id)]; markPresent(state, `author-draft:${draft.id}`, now); writeState(storage, state) },
+    removeAuthorDraft(id) { const state = readState(storage); state.authorDrafts = state.authorDrafts.filter((item) => item.id !== id); markRemoved(state, `author-draft:${id}`, now); writeState(storage, state) },
     getPreferences() { return clone(readState(storage).preferences) },
-    savePreferences(value) { const state = readState(storage); state.preferences = preferences(value); writeState(storage, state) },
+    savePreferences(value) { const state = readState(storage); state.preferences = preferences(value); markPresent(state, 'preferences:reader', now); writeState(storage, state) },
     listAnnotations(setId) { return clone(readState(storage).annotations.filter((item) => !setId || item.setId === setId)) },
-    saveAnnotation(annotation) { const state = readState(storage); state.annotations = [...state.annotations.filter(({ id }) => id !== annotation.id), clone(annotation)]; writeState(storage, state) },
-    removeAnnotation(id) { const state = readState(storage); state.annotations = state.annotations.filter((item) => item.id !== id); writeState(storage, state) },
+    saveAnnotation(annotation) { const state = readState(storage); state.annotations = [...state.annotations.filter(({ id }) => id !== annotation.id), clone(annotation)]; markPresent(state, `annotation:${annotation.id}`, now); writeState(storage, state) },
+    removeAnnotation(id) { const state = readState(storage); state.annotations = state.annotations.filter((item) => item.id !== id); markRemoved(state, `annotation:${id}`, now); writeState(storage, state) },
     listFavoriteSetIds() { return clone(readState(storage).favoriteSetIds) },
-    toggleFavoriteSet(id) { const state = readState(storage); const result = toggle(state.favoriteSetIds, id); state.favoriteSetIds = result.items; writeState(storage, state); return result.active },
+    toggleFavoriteSet(id) { const state = readState(storage); const result = toggle(state.favoriteSetIds, id); state.favoriteSetIds = result.items; result.active ? markPresent(state, `favorite-set:${id}`, now) : markRemoved(state, `favorite-set:${id}`, now); writeState(storage, state); return result.active },
     listFavoriteQuestionIds() { return clone(readState(storage).favoriteQuestionIds) },
-    toggleFavoriteQuestion(id) { const state = readState(storage); const result = toggle(state.favoriteQuestionIds, id); state.favoriteQuestionIds = result.items; writeState(storage, state); return result.active },
+    toggleFavoriteQuestion(id) { const state = readState(storage); const result = toggle(state.favoriteQuestionIds, id); state.favoriteQuestionIds = result.items; result.active ? markPresent(state, `favorite-question:${id}`, now) : markRemoved(state, `favorite-question:${id}`, now); writeState(storage, state); return result.active },
     listMasteredErrorKeys() { return clone(readState(storage).masteredErrorKeys) },
-    setErrorMastered(key, mastered) { const state = readState(storage); state.masteredErrorKeys = mastered ? [...new Set([...state.masteredErrorKeys, key])] : state.masteredErrorKeys.filter((item) => item !== key); writeState(storage, state) },
-    exportBackup() { return JSON.stringify(readState(storage), null, 2) },
+    setErrorMastered(key, mastered) { const state = readState(storage); state.masteredErrorKeys = mastered ? [...new Set([...state.masteredErrorKeys, key])] : state.masteredErrorKeys.filter((item) => item !== key); mastered ? markPresent(state, `mastered-error:${key}`, now) : markRemoved(state, `mastered-error:${key}`, now); writeState(storage, state) },
+    exportBackup() { return serializePracticeBackup(readState(storage)) },
     importBackup(value) {
       let raw: unknown
       try { raw = JSON.parse(value) as unknown } catch { return { ok: false, error: '备份文件不是有效 JSON。' } }
-      if (!isRecord(raw) || (raw.version !== 2 && raw.version !== 3)) return { ok: false, error: '仅支持版本 2 或版本 3 的备份文件。' }
+      if (!isRecord(raw) || (raw.version !== 2 && raw.version !== 3 && raw.version !== 4)) return { ok: false, error: '仅支持版本 2、3 或 4 的备份文件。' }
       const parsed = migrateState(raw)
       if (!parsed) return { ok: false, error: '备份文件格式无效或已损坏。' }
       writeState(storage, parsed)

@@ -1,7 +1,7 @@
 {
   "name": "ielts-pilot",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.7.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
@@ -9,12 +9,14 @@
     "typecheck": "vue-tsc -b",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:e2e": "playwright test",
     "check": "npm run typecheck && npm run test:unit && npm run build",
     "desktop:dev": "tauri dev",
     "desktop:check": "npm run check && cargo check --manifest-path src-tauri/Cargo.toml",
     "desktop:build": "tauri build --bundles nsis",
     "desktop:release": "tauri build --bundles nsis --config src-tauri/tauri.release.conf.json",
+    "sync:server": "node tools/secure-sync-server.mjs",
     "tauri": "tauri"
   },
   "dependencies": {
