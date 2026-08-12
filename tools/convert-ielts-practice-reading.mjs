@@ -8,6 +8,19 @@ import { JSDOM } from 'jsdom'
 
 const SOURCE_URL = 'https://github.com/sallowayma-git/IELTS-practice'
 const PERSONAL_USE_NOTE = 'Converted from a locally held IELTS Atlas/IELTS-practice reading asset for private study. The converter does not grant rights to redistribute third-party passages, questions, explanations, PDFs or media.'
+const IMPORT_INSTRUCTIONS = `IELTS Pilot 私人题库导入说明
+
+1. 在新电脑安装并启动 IELTS Pilot 0.9.0 或更高版本。
+2. 打开“题库”，进入“题库包管理”。
+3. 点击“选择 JSON 内容包”，选择本目录中的 private-atlas-*.json 文件。
+4. 查看来源、授权和题量预览后，点击“确认安装”。
+5. 对其余 JSON 包逐个重复以上步骤；conversion-report.json 不是题库包，不要导入。
+
+建议按 P1、P2、P3 和文件编号顺序导入。本目录内的 SHA256SUMS.txt 可用于传输后完整性校验。
+
+版权提示：这些转换结果来自本机持有的 IELTS-practice 数据，只供个人学习使用。转换工具不授予第三方文章、题目、解析、PDF 或媒体的修改、再分发或商业使用权。
+参考项目：${SOURCE_URL}
+`
 const STOP_WORDS = new Set(['about', 'after', 'again', 'against', 'also', 'among', 'because', 'before', 'being', 'below', 'between', 'could', 'does', 'following', 'from', 'given', 'into', 'more', 'most', 'other', 'over', 'passage', 'question', 'should', 'some', 'than', 'that', 'their', 'there', 'these', 'they', 'this', 'through', 'under', 'which', 'with', 'would', 'write'])
 const REGISTRIES = new Set(['__READING_EXAM_DATA__', '__READING_EXPLANATION_DATA__'])
 const MATCHING_TYPES = new Set(['matching-headings', 'matching-information', 'matching-features', 'matching-sentence-endings'])
@@ -152,11 +165,12 @@ function groupDocument(group) {
 function controlsFor(document, questionId) {
   return [...document.querySelectorAll('input,select,textarea,[data-question]')].filter((element) =>
     tidy(element.getAttribute('name')).toLowerCase() === questionId
-    || tidy(element.getAttribute('data-question')).toLowerCase() === questionId)
+    || tidy(element.getAttribute('data-question')).toLowerCase() === questionId
+    || (tidy(element.getAttribute('name')).match(/\d+/g) ?? []).some((number) => `q${Number(number)}` === questionId))
 }
 
 function optionFromElement(element) {
-  const key = tidy(element.getAttribute('data-heading') || element.getAttribute('data-option') || element.getAttribute('data-value') || element.getAttribute('value'))
+  const key = tidy(element.getAttribute('data-heading') || element.getAttribute('data-option') || element.getAttribute('data-word') || element.getAttribute('data-key') || element.getAttribute('data-value') || element.getAttribute('value'))
   let label = tidy(element.textContent)
   if (!key || !label) return null
   label = label.replace(new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[.、):\-]?\\s*`, 'i'), '').trim() || key
@@ -181,7 +195,7 @@ function extractOptions(document, questionId) {
     const labelText = tidy(label?.textContent || key).replace(new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[.、):\-]?\\s*`, 'i'), '').trim() || key
     add(key ? { key, label: labelText } : null)
   }
-  for (const element of document.querySelectorAll('.drag-item,[data-heading],[data-option]')) add(optionFromElement(element))
+  for (const element of document.querySelectorAll('.drag-item,[data-heading],[data-option],[data-word],[data-key]')) add(optionFromElement(element))
   return options
 }
 
@@ -515,6 +529,7 @@ export async function runConversion(options) {
     if (convertedSets !== examFiles.length || convertedQuestions !== sourceQuestions) throw new Error('Conversion totals do not match the source registry totals.')
     await writeFile(join(staging, 'conversion-report.json'), `${JSON.stringify(report, null, 2)}\n`, 'utf8')
     await writeFile(join(staging, 'SHA256SUMS.txt'), `${packages.map((item) => `${item.sha256}  ${item.file}`).join('\n')}\n`, 'utf8')
+    await writeFile(join(staging, 'IMPORT-INSTRUCTIONS.txt'), IMPORT_INSTRUCTIONS, 'utf8')
     await replaceGeneratedDirectory(staging, output)
     return report
   } catch (error) {

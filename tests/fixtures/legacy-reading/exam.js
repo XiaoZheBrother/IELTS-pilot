@@ -33,14 +33,25 @@
         groupId: 'group-4', kind: 'multi_choice', questionIds: ['q4'],
         bodyHtml: '<p>Choose TWO letters.</p><div class="question-item"><p><strong>4</strong> Which TWO benefits are mentioned?</p><label><input type="checkbox" name="q4" value="A">A Cooler streets</label><label><input type="checkbox" name="q4" value="B">B More parking</label><label><input type="checkbox" name="q4" value="C">C Quiet places</label></div>',
       },
+      {
+        groupId: 'group-5', kind: 'matching', questionIds: ['q5'],
+        bodyHtml: '<p>Complete the summary using the list of places, A-C, below.</p><div data-question="q5"></div><div class="options-pool"><div class="drag-item" data-word="A">A America</div><div class="drag-item" data-word="B">B Bahrain</div><div class="drag-item" data-word="C">C China</div></div>',
+      },
+      {
+        groupId: 'group-6', kind: 'multi_choice', questionIds: ['q6', 'q7'],
+        bodyHtml: '<p>Choose TWO letters, A-C.</p><p>Which TWO benefits are mentioned?</p><label><input type="checkbox" name="q6_7" value="A">A Cooler streets</label><label><input type="checkbox" name="q6_7" value="B">B More parking</label><label><input type="checkbox" name="q6_7" value="C">C Quiet places</label>',
+      },
     ],
     answerKey: {
       q1: 'TRUE',
       q2: 'ii',
       q3: ['Friday', 'each Friday'],
       q4: ['A', 'C'],
+      q5: 'B',
+      q6: 'A',
+      q7: 'C',
     },
-    questionDisplayMap: { q1: '1', q2: '2', q3: '3', q4: '4' },
+    questionDisplayMap: { q1: '1', q2: '2', q3: '3', q4: '4', q5: '5', q6: '6', q7: '7' },
     sourceRefs: { ieltsHtml: 'IELTS/P1/Demonstration.html' },
   })
 })(typeof window !== 'undefined' ? window : globalThis)

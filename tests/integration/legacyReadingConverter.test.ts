@@ -40,6 +40,7 @@ describe('legacy reading converter command', () => {
       'private-atlas-p1-001.json',
       'conversion-report.json',
       'SHA256SUMS.txt',
+      'IMPORT-INSTRUCTIONS.txt',
     ]))
     const content = JSON.parse(await readFile(join(output, 'private-atlas-p1-001.json'), 'utf8')) as unknown
     expect(validateContentPackage(content).ok).toBe(true)
@@ -50,8 +51,10 @@ describe('legacy reading converter command', () => {
       convertedQuestions: number
       packages: Array<{ file: string }>
     }
-    expect(report).toMatchObject({ sourceSets: 1, sourceQuestions: 4, convertedSets: 1, convertedQuestions: 4 })
+    expect(report).toMatchObject({ sourceSets: 1, sourceQuestions: 7, convertedSets: 1, convertedQuestions: 7 })
     expect(report.packages.map(({ file }) => basename(file))).toEqual(['private-atlas-p1-001.json'])
     expect(await readFile(join(output, 'SHA256SUMS.txt'), 'utf8')).toMatch(/^[a-f0-9]{64}  private-atlas-p1-001\.json\r?\n$/)
+    expect(await readFile(join(output, 'IMPORT-INSTRUCTIONS.txt'), 'utf8')).toContain('题库包管理')
+    expect(await readFile(join(output, 'IMPORT-INSTRUCTIONS.txt'), 'utf8')).toContain('个人学习')
   })
 })

@@ -56,7 +56,34 @@ describe('legacy reading converter', () => {
       selectLimit: 2,
     })
     expect(result.stats.dedicatedExplanations).toBe(1)
-    expect(result.stats.fallbackExplanations).toBe(3)
+    expect(result.stats.fallbackExplanations).toBe(6)
+  })
+
+  test('extracts shared option pools from legacy grouped controls', async () => {
+    const { data: exam } = await loadRegisteredPayload(fixture('exam.js'), '__READING_EXAM_DATA__')
+    const result = convertExam(exam, new Map(), 'exam.js')
+    const [wordPool, groupedFirst, groupedSecond] = result.set.questions.slice(4)
+
+    expect(wordPool).toMatchObject({
+      type: 'matching-features',
+      acceptedAnswers: ['B'],
+      options: [
+        { key: 'A', label: 'America' },
+        { key: 'B', label: 'Bahrain' },
+        { key: 'C', label: 'China' },
+      ],
+    })
+    expect(groupedFirst).toMatchObject({
+      type: 'multiple-choice',
+      acceptedAnswers: ['A'],
+      options: [
+        { key: 'A', label: 'Cooler streets' },
+        { key: 'B', label: 'More parking' },
+        { key: 'C', label: 'Quiet places' },
+      ],
+    })
+    expect(groupedSecond).toMatchObject({ type: 'multiple-choice', acceptedAnswers: ['C'] })
+    expect(result.stats.downgradedOptionQuestions).toBe(0)
   })
 
   test('builds a package accepted by the application validator', async () => {
