@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useReaderPreferences } from './composables/useReaderPreferences'
 import { createBrowserPracticeRepository } from './storage/practiceRepository'
+import LearningAssistant from './components/LearningAssistant.vue'
 
 const route = useRoute()
 const focusMode = computed(() => route.name === 'mock' || route.name === 'practice')
@@ -19,5 +20,6 @@ useReaderPreferences(createBrowserPracticeRepository())
       <div class="header-tools" data-testid="utility-nav"><span class="local-status"><i aria-hidden="true" /> 本地优先</span><RouterLink to="/library/sources">内容源</RouterLink><RouterLink to="/sync">同步</RouterLink><RouterLink to="/updates">更新</RouterLink><RouterLink to="/settings">设置</RouterLink><RouterLink to="/about">关于</RouterLink></div>
     </header>
     <div id="app-content"><RouterView /></div>
+    <LearningAssistant v-if="!focusMode" />
   </div>
 </template>

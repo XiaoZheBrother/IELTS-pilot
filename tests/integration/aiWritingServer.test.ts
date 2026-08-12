@@ -77,6 +77,26 @@ describe('AI writing production gateway', () => {
     expect(output()).not.toContain('integration-secret-value')
   })
 
+  it('serves assistant health and bounded chat through the same protected provider', async () => {
+    const health = await fetch(`${baseUrl}/api/v1/assistant/health`)
+    expect(health.status).toBe(200)
+    expect(await health.json()).toMatchObject({ available: true, mode: 'gateway', model: 'fixture-model' })
+
+    const response = await fetch(`${baseUrl}/api/v1/assistant/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [
+        { role: 'system', content: 'Use supplied facts only.' },
+        { role: 'user', content: '{"question":"分析状态"}' },
+      ] }),
+    })
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ content: '{"summary":"fixture"}', model: 'fixture-model' })
+    expect(observedAuthorization).toBe('Bearer integration-secret-value')
+    expect(observedBody).toMatchObject({ model: 'fixture-model', temperature: 0.25 })
+    expect(output()).not.toContain('integration-secret-value')
+  })
+
   it('validates methods and body size, then injects the upstream credential server-side', async () => {
     expect((await fetch(`${baseUrl}/api/v1/writing/evaluate`)).status).toBe(405)
     const tooLarge = await fetch(`${baseUrl}/api/v1/writing/evaluate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ essay: 'x'.repeat(40_000) }) })

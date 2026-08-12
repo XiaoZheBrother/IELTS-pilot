@@ -88,6 +88,61 @@ async function evaluate(config, value, requestId) {
   } finally { clearTimeout(timeout) }
 }
 
+function validateAssistantChat(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !Array.isArray(value.messages)) throw new Error('Assistant request must include messages.')
+  if (value.messages.length !== 2) throw new Error('Assistant request must include exactly two messages.')
+  const messages = value.messages.map((message) => {
+    if (!message || typeof message !== 'object' || (message.role !== 'system' && message.role !== 'user')
+      || typeof message.content !== 'string' || !message.content.trim() || message.content.length > 12_000) {
+      throw new Error('Assistant message is invalid.')
+    }
+    return { role: message.role, content: message.content }
+  })
+  return { messages }
+}
+
+async function chatAssistant(config, value, requestId) {
+  const { messages } = validateAssistantChat(value)
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 90_000)
+  try {
+    const upstream = await fetch(config.endpoint, {
+      method: 'POST', signal: controller.signal,
+      headers: { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json', 'X-Client-Request-Id': requestId },
+      body: JSON.stringify({ model: config.model, messages, thinking: { type: 'disabled' }, temperature: 0.25, max_tokens: 1_200 }),
+    })
+    if (!upstream.ok) {
+      const code = upstream.status === 429 ? 'UPSTREAM_RATE_LIMIT' : upstream.status >= 500 ? 'UPSTREAM_UNAVAILABLE' : 'UPSTREAM_REJECTED'
+      const error = new Error(`AI provider returned HTTP ${upstream.status}.`)
+      error.code = code
+      error.status = upstream.status === 429 ? 429 : 502
+      throw error
+    }
+    const raw = await upstream.json()
+    const content = raw?.choices?.[0]?.message?.content
+    if (typeof content !== 'string' || !content.trim()) {
+      const error = new Error('AI provider returned no assistant content.')
+      error.code = 'UPSTREAM_INVALID_RESPONSE'
+      throw error
+    }
+    return {
+      content, model: typeof raw.model === 'string' ? raw.model : config.model, requestId: typeof raw.id === 'string' ? raw.id : requestId,
+      usage: {
+        promptTokens: Number(raw?.usage?.prompt_tokens) || 0,
+        completionTokens: Number(raw?.usage?.completion_tokens) || 0,
+        totalTokens: Number(raw?.usage?.total_tokens) || 0,
+      },
+    }
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      const timeoutError = new Error('AI provider request timed out.')
+      timeoutError.code = 'UPSTREAM_TIMEOUT'
+      throw timeoutError
+    }
+    throw error
+  } finally { clearTimeout(timeout) }
+}
+
 async function serveStatic(distRoot, pathname, response, spaFallback = true) {
   const decoded = decodeURIComponent(pathname)
   const requested = resolve(distRoot, `.${decoded}`)
@@ -128,6 +183,16 @@ export function createAiWritingServer({ config, dist, samples = 'examples', logg
         logger({ event: 'evaluation', requestId, model: result.model, status: 'ok', durationMs: Date.now() - started })
         return json(response, 200, result)
       }
+      if (url.pathname === '/api/v1/assistant/health') {
+        if (request.method !== 'GET') return json(response, 405, { code: 'METHOD_NOT_ALLOWED', message: 'Use GET.' }, { Allow: 'GET' })
+        return json(response, 200, { available: true, mode: 'gateway', model: config.model })
+      }
+      if (url.pathname === '/api/v1/assistant/chat') {
+        if (request.method !== 'POST') return json(response, 405, { code: 'METHOD_NOT_ALLOWED', message: 'Use POST.' }, { Allow: 'POST' })
+        const result = await chatAssistant(config, await readBody(request), requestId)
+        logger({ event: 'assistant_chat', requestId, model: result.model, status: 'ok', durationMs: Date.now() - started })
+        return json(response, 200, result)
+      }
       if (request.method === 'GET' || request.method === 'HEAD') {
         if (url.pathname.startsWith('/examples/') && await serveStatic(sampleRoot, url.pathname.slice('/examples'.length), response, false)) return
         if (await serveStatic(distRoot, url.pathname, response)) return
@@ -136,7 +201,7 @@ export function createAiWritingServer({ config, dist, samples = 'examples', logg
     } catch (error) {
       const code = error?.code === 'BODY_TOO_LARGE' ? 'BODY_TOO_LARGE' : error?.code || 'INVALID_REQUEST'
       const status = error?.code === 'BODY_TOO_LARGE' ? 413 : error?.status || (String(code).startsWith('UPSTREAM_') ? 502 : 400)
-      logger({ event: 'evaluation', requestId, status: 'error', code, durationMs: Date.now() - started })
+      logger({ event: url.pathname.startsWith('/api/v1/assistant/') ? 'assistant_chat' : 'evaluation', requestId, status: 'error', code, durationMs: Date.now() - started })
       return json(response, status, { code, message: error instanceof Error ? error.message : 'Evaluation failed.', requestId })
     }
   })
