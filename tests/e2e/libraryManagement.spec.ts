@@ -28,7 +28,7 @@ test('previews, installs and removes a schema v2 content package', async ({ page
   await page.goto('/library/packages')
   await page.locator('input[type="file"]').setInputFiles(resolve('examples/sample-content-package-v2.json'))
   await expect(page.getByRole('heading', { name: '安装预览' })).toBeVisible()
-  await page.getByTestId('confirm-package-install').click()
+  await page.getByTestId('confirm-package-batch-install').click()
   await expect(page.getByRole('heading', { name: 'Community Rooftop Sample' })).toBeVisible()
   await page.goto('/library')
   await expect(page.getByText('A Rooftop That Watches the Weather')).toBeVisible()

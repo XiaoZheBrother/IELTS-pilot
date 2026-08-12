@@ -12,11 +12,11 @@ const IMPORT_INSTRUCTIONS = `IELTS Pilot 私人题库导入说明
 
 1. 在新电脑安装并启动 IELTS Pilot 0.9.0 或更高版本。
 2. 打开“题库”，进入“题库包管理”。
-3. 点击“选择 JSON 内容包”，选择本目录中的 private-atlas-*.json 文件。
-4. 查看来源、授权和题量预览后，点击“确认安装”。
-5. 对其余 JSON 包逐个重复以上步骤；conversion-report.json 不是题库包，不要导入。
+3. 点击“选择一个或多个 JSON 内容包”，一次选择全部 private-atlas-*.json 文件。
+4. 查看每个包的来源、授权、题量与冲突检查结果。
+5. 点击“安装全部可用内容包”；conversion-report.json 不是题库包，不要选择。
 
-建议按 P1、P2、P3 和文件编号顺序导入。本目录内的 SHA256SUMS.txt 可用于传输后完整性校验。
+应用会按文件选择顺序安装 P1、P2、P3 内容包。本目录内的 SHA256SUMS.txt 可用于传输后完整性校验。
 
 版权提示：这些转换结果来自本机持有的 IELTS-practice 数据，只供个人学习使用。转换工具不授予第三方文章、题目、解析、PDF 或媒体的修改、再分发或商业使用权。
 参考项目：${SOURCE_URL}

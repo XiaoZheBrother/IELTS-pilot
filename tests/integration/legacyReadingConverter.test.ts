@@ -56,5 +56,6 @@ describe('legacy reading converter command', () => {
     expect(await readFile(join(output, 'SHA256SUMS.txt'), 'utf8')).toMatch(/^[a-f0-9]{64}  private-atlas-p1-001\.json\r?\n$/)
     expect(await readFile(join(output, 'IMPORT-INSTRUCTIONS.txt'), 'utf8')).toContain('题库包管理')
     expect(await readFile(join(output, 'IMPORT-INSTRUCTIONS.txt'), 'utf8')).toContain('个人学习')
+    expect(await readFile(join(output, 'IMPORT-INSTRUCTIONS.txt'), 'utf8')).toContain('一次选择全部')
   })
 })

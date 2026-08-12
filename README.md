@@ -106,7 +106,7 @@ npm run content:convert:legacy -- --source "D:\path\to\IELTS-practice" --output 
 npm run content:validate -- --input "artifacts\import\ielts-practice-reading"
 ```
 
-按当前参考项目快照会生成 11 个可导入包，覆盖 P1/P2/P3 共 234 篇、3143 道题，同时生成 `conversion-report.json`、`SHA256SUMS.txt` 和 `IMPORT-INSTRUCTIONS.txt`。在另一台电脑中打开“题库 → 题库包管理”，按文件编号逐个选择 `private-atlas-*.json`、预览并确认安装即可。
+按当前参考项目快照会生成 11 个可导入包，覆盖 P1/P2/P3 共 234 篇、3143 道题，同时生成 `conversion-report.json`、`SHA256SUMS.txt` 和 `IMPORT-INSTRUCTIONS.txt`。在另一台电脑中打开“题库 → 题库包管理”，一次选择全部 `private-atlas-*.json`，查看批量预览后点击“安装全部可用内容包”即可。
 
 转换结果默认位于被 Git 忽略的 `artifacts/`，不会提交或发布第三方题文。转换器只处理本机已有数据，不代表参考项目或第三方权利人授予了修改、再分发或商业使用许可；请在复制到其他设备前自行确认你拥有相应使用权。
 

@@ -6,6 +6,7 @@ const packagePath = process.env.LEGACY_PACKAGE_PATH
 const screenshotPath = process.env.LEGACY_IMPORT_SCREENSHOT
 const packageDirectory = process.env.LEGACY_PACKAGE_DIRECTORY
 const allPackagesScreenshotPath = process.env.LEGACY_ALL_PACKAGES_SCREENSHOT
+const batchPreviewScreenshotPath = process.env.LEGACY_BATCH_PREVIEW_SCREENSHOT
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
@@ -19,7 +20,7 @@ test('imports a converted IELTS-practice package through the real UI', async ({ 
   await page.goto('/library/packages')
   await page.locator('input[type="file"]').setInputFiles(resolve(packagePath!))
   await expect(page.getByText('Private Atlas P1 001', { exact: true })).toBeVisible()
-  await page.getByTestId('confirm-package-install').click()
+  await page.getByTestId('confirm-package-batch-install').click()
   await expect(page.getByRole('heading', { name: 'Private Atlas P1 001' })).toBeVisible()
 
   await page.goto('/library')
@@ -36,10 +37,10 @@ test('installs the complete converted bank without exceeding browser storage', a
   expect(files).toHaveLength(11)
 
   await page.goto('/library/packages')
-  for (const file of files) {
-    await page.locator('input[type="file"]').setInputFiles(resolve(packageDirectory!, file))
-    await page.getByTestId('confirm-package-install').click()
-  }
+  await page.locator('input[type="file"]').setInputFiles(files.map((file) => resolve(packageDirectory!, file)))
+  await expect(page.locator('.package-batch-heading')).toContainText('11 个可安装')
+  if (batchPreviewScreenshotPath) await page.screenshot({ path: resolve(batchPreviewScreenshotPath), fullPage: true })
+  await page.getByTestId('confirm-package-batch-install').click()
   await expect(page.locator('.installed-package')).toHaveCount(11)
 
   await page.goto('/library')
