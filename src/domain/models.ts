@@ -218,6 +218,9 @@ export interface InstalledContentPackage {
   changelog?: string
   digest: string
   installedAt: string
+  publisherId?: string
+  catalogId?: string
+  signatureStatus?: 'verified'
   sets: PracticeSet[]
 }
 

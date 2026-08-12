@@ -83,7 +83,7 @@ function idsFor(prefix: string, left: PracticeBackupV4, right: PracticeBackupV4,
       if (key.startsWith(marker)) ids.add(key.slice(marker.length))
     }
   }
-  return [...ids].sort((a, b) => a.localeCompare(b))
+  return [...ids].sort((left, right) => left < right ? -1 : left > right ? 1 : 0)
 }
 
 function eventFor<T>(state: PracticeBackupV4, key: string, values: Map<string, T>): Event<T> | null {
@@ -122,7 +122,7 @@ function notePreview(preview: SyncMergePreview, left: Event<unknown> | null, rig
 }
 
 function sortedRecord(value: Record<string, string>): Record<string, string> {
-  return Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right)))
+  return Object.fromEntries(Object.entries(value).sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0))
 }
 
 function normalizeInput(value: PracticeBackupV4 | string): PracticeBackupV4 {

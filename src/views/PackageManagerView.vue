@@ -66,7 +66,7 @@ onMounted(() => {
 <template>
   <main class="package-manager-page page-shell">
     <header class="page-intro"><div><p class="section-kicker">Content packages</p><h1>题库包管理</h1></div><p>所有内容先校验、预览再安装。升级和卸载不会改写历史成绩。</p></header>
-    <section class="package-tools"><label class="package-file"><span>选择 JSON 内容包</span><input type="file" accept="application/json,.json" @change="choosePackage" /><b>读取并预览</b></label><RouterLink to="/library/editor">创建本地题库 →</RouterLink></section>
+    <section class="package-tools"><label class="package-file"><span>选择 JSON 内容包</span><input type="file" accept="application/json,.json" @change="choosePackage" /><b>读取并预览</b></label><RouterLink to="/library/sources">浏览可信内容源 →</RouterLink><RouterLink to="/library/editor">创建本地题库 →</RouterLink></section>
     <p class="import-feedback" aria-live="polite">{{ feedback }}</p>
     <section v-if="preview && incoming" class="package-install-stage"><PackagePreview :preview="preview" /><div class="package-install-notice"><strong>安装前确认</strong><p>{{ incoming.note }}</p><p>来源：{{ incoming.sourceUrl || '内容包未提供外部链接' }}</p><button data-testid="confirm-package-install" class="signal-action" type="button" :disabled="preview.action === 'blocked'" @click="confirmInstall">{{ preview.action === 'upgrade' ? '确认升级' : '确认安装' }}</button></div></section>
     <section class="installed-packages"><header class="index-heading"><div><p class="section-kicker">Installed locally</p><h2>已安装内容包</h2></div><span>{{ installed.length }} 个</span></header>

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 2,
+  "packageId": "signed-reading-sample",
+  "version": "1.0.0",
+  "name": "Signed Reading Sample",
+  "description": "A compact original package distributed through the signed catalog example.",
+  "owner": "IELTS Pilot",
+  "license": "CC-BY-4.0",
+  "sourceUrl": "https://github.com/XiaoZheBrother/IELTS-pilot",
+  "note": "Original demonstration content. Not an official IELTS item.",
+  "createdAt": "2026-08-12T08:00:00.000Z",
+  "updatedAt": "2026-08-12T08:00:00.000Z",
+  "minimumAppVersion": "0.8.0",
+  "changelog": "Initial signed catalog sample.",
+  "sets": [
+    {
+      "id": "signed-library-signals",
+      "sequence": "S1",
+      "eyebrow": "Information Design",
+      "title": "Signals on the Library Wall",
+      "summary": "An original short passage about a public information display.",
+      "level": "B2",
+      "durationMinutes": 8,
+      "topics": ["libraries", "information design"],
+      "difficulty": "foundation",
+      "estimatedBand": 5.5,
+      "passage": {
+        "title": "Signals on the Library Wall",
+        "deck": "Why one library made its building data visible.",
+        "sections": [
+          {
+            "heading": "A display with a purpose",
+            "paragraphs": [
+              "A city library installed a simple display beside its entrance. It showed how much electricity the building used each hour, allowing visitors to compare a busy afternoon with a quiet morning.",
+              "The librarians did not present the figures as a competition. Instead, school groups used the display to ask why demand changed and which activities required the most energy."
+            ]
+          }
+        ]
+      },
+      "provenance": {
+        "kind": "original",
+        "author": "IELTS Pilot",
+        "note": "Original demonstration passage and question.",
+        "license": "CC-BY-4.0",
+        "sourceUrl": "https://github.com/XiaoZheBrother/IELTS-pilot"
+      },
+      "questions": [
+        {
+          "id": "signed_signal_q1",
+          "type": "multiple-choice",
+          "prompt": "What could visitors compare on the display?",
+          "options": [
+            { "key": "A", "label": "Electricity use at different times" },
+            { "key": "B", "label": "The prices of library books" },
+            { "key": "C", "label": "Scores from a school competition" },
+            { "key": "D", "label": "Weather in different cities" }
+          ],
+          "acceptedAnswers": ["A"],
+          "explanation": "The first paragraph says visitors could compare electricity use during busy and quiet periods.",
+          "sourceRef": { "sectionIndex": 0, "paragraphIndex": 0 }
+        }
+      ]
+    }
+  ]
+}

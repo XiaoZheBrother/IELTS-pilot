@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "catalogId": "ielts-pilot-example",
+  "name": "IELTS Pilot Signed Example",
+  "description": "A public example showing an authorized package, publisher signature and byte-exact digest.",
+  "updatedAt": "2026-08-12T08:00:00.000Z",
+  "publisher": {
+    "publisherId": "ielts-pilot-example-publisher",
+    "name": "IELTS Pilot Example Publisher",
+    "website": "https://github.com/XiaoZheBrother/IELTS-pilot",
+    "publicKey": {
+      "kty": "EC",
+      "x": "ce8TLLrK5txvJAubjWdmV4Hp6rsPHrR6WaEbspGCy1M",
+      "y": "MsHvI7drwJlkJzVlxkT5OkdDp880CDxRuVy4zFYmj0Y",
+      "crv": "P-256",
+      "alg": "ES256",
+      "use": "sig"
+    }
+  },
+  "packages": [
+    {
+      "packageId": "signed-reading-sample",
+      "name": "Signed Reading Sample",
+      "version": "1.0.0",
+      "description": "A compact original package distributed through the signed catalog example.",
+      "license": "CC-BY-4.0",
+      "url": "https://raw.githubusercontent.com/XiaoZheBrother/IELTS-pilot/main/examples/signed-catalog/package.json",
+      "sha256": "7e9c4afc9e1857df96d93d346d8ffce28712ff918b58524ddd11471190870680",
+      "size": 2675,
+      "updatedAt": "2026-08-12T08:00:00.000Z"
+    }
+  ],
+  "signature": {
+    "algorithm": "ECDSA-P256-SHA256",
+    "value": "4mbqEZc9uCKDD38-r09MbSvlwiuWdIqyP2OUubHTDRqHYmTkvYBke7DtElcYgqwawuvxVfvAIO3FeG0ssih-gg"
+  }
+}

@@ -1,7 +1,7 @@
 {
   "name": "ielts-pilot",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.8.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
@@ -17,6 +17,9 @@
     "desktop:build": "tauri build --bundles nsis",
     "desktop:release": "tauri build --bundles nsis --config src-tauri/tauri.release.conf.json",
     "sync:server": "node tools/secure-sync-server.mjs",
+    "publisher:keys": "node tools/publisher-keys.mjs",
+    "publisher:sign": "node tools/sign-catalog.mjs",
+    "publisher:verify": "node tools/verify-catalog.mjs",
     "tauri": "tauri"
   },
   "dependencies": {

@@ -9,4 +9,6 @@ src-tauri/target/
 src-tauri/gen/
 .DS_Store
 *.local
+publisher-private.jwk
+*.publisher-private.jwk
 

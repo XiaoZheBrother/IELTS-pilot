@@ -43,4 +43,11 @@ describe('content package lifecycle', () => {
     expect(preview).toMatchObject({ action: 'blocked', compatibilityError: expect.stringContaining('9.0.0') })
     expect(await installPackage(future, [], [])).toMatchObject({ ok: false, error: expect.stringContaining('9.0.0') })
   })
+
+  it('records verified publisher provenance on catalog installs', async () => {
+    const result = await installPackage(incoming, [], [], () => new Date('2026-08-12T01:00:00.000Z'), {
+      publisherId: 'publisher-one', catalogId: 'catalog-one', signatureStatus: 'verified',
+    })
+    expect(result).toMatchObject({ ok: true, packages: [{ publisherId: 'publisher-one', catalogId: 'catalog-one', signatureStatus: 'verified' }] })
+  })
 })

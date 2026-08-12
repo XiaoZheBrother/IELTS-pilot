@@ -14,6 +14,7 @@ export const router = createRouter({
     { path: '/sync', name: 'sync', component: () => import('./views/SyncView.vue') },
     { path: '/about', name: 'about', component: () => import('./views/AboutView.vue') },
     { path: '/library/packages', name: 'packages', component: () => import('./views/PackageManagerView.vue') },
+    { path: '/library/sources', name: 'content-sources', component: () => import('./views/ContentSourcesView.vue') },
     { path: '/library/editor', name: 'package-editor', component: () => import('./views/PackageEditorView.vue') },
     { path: '/practice/:testId', name: 'practice', component: () => import('./views/PracticeView.vue') },
     { path: '/mock/:mockId', name: 'mock', component: () => import('./views/MockView.vue') },
