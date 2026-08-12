@@ -17,12 +17,14 @@
     "desktop:build": "tauri build --bundles nsis",
     "desktop:release": "tauri build --bundles nsis --config src-tauri/tauri.release.conf.json",
     "sync:server": "node tools/secure-sync-server.mjs",
+    "serve:production": "node tools/ai-writing-server.mjs",
     "publisher:keys": "node tools/publisher-keys.mjs",
     "publisher:sign": "node tools/sign-catalog.mjs",
     "publisher:verify": "node tools/verify-catalog.mjs",
     "tauri": "tauri"
   },
   "dependencies": {
+    "@tauri-apps/api": "^2.8.0",
     "@tauri-apps/plugin-process": "^2.3.1",
     "@tauri-apps/plugin-updater": "^2.10.1",
     "vue": "^3.5.18",
