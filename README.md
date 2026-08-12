@@ -4,7 +4,7 @@
 
 > 本项目不是 IELTS 官方产品，不包含官方真题，也不提供官方成绩。
 
-> **Windows 用户：**[直接下载 IELTS Pilot v0.9.1 安装包（x64 Setup.exe）](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.1/IELTS-Pilot-0.9.1-Windows-x64-Setup.exe)。其他版本与校验文件见 [GitHub Releases](https://github.com/XiaoZheBrother/IELTS-pilot/releases/latest)。
+> **Windows 用户：**[直接下载 IELTS Pilot v0.9.1 安装包（x64 Setup.exe）](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.1/IELTS.Pilot_0.9.1_x64-setup.exe)。其他版本与校验文件见 [GitHub Releases](https://github.com/XiaoZheBrother/IELTS-pilot/releases/latest)。
 
 完整的产品能力、部署方式、评分机制、安全边界和逐功能走查，请参阅 [v0.9 产品功能说明书](docs/IELTS-Pilot-v0.9-产品功能说明书.md)。
 
@@ -60,7 +60,7 @@ npm run serve:production -- --config "你的 AI 配置文件路径" --port 4390
 
 ## Windows 桌面版
 
-不需要开发环境时，直接下载并运行 [IELTS Pilot v0.9.1 Windows x64 安装包](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.1/IELTS-Pilot-0.9.1-Windows-x64-Setup.exe)。安装器按当前用户安装，不需要管理员权限。由于当前开源构建没有商业 Authenticode 证书，Windows SmartScreen 可能显示“未知发布者”。
+不需要开发环境时，直接下载并运行 [IELTS Pilot v0.9.1 Windows x64 安装包](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.1/IELTS.Pilot_0.9.1_x64-setup.exe)。安装器按当前用户安装，不需要管理员权限。由于当前开源构建没有商业 Authenticode 证书，Windows SmartScreen 可能显示“未知发布者”。
 
 开发模式还需要 Rust stable、Microsoft C++ Build Tools 和 Windows WebView2：
 

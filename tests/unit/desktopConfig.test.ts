@@ -56,7 +56,7 @@ describe('desktop packaging configuration', () => {
     expect(workflow).toContain('releaseDraft: false')
     expect(workflow).toContain('releaseAssetNamePattern: IELTS-Pilot-[version]-Windows-[arch]-Setup.[ext]')
     expect(workflow).toContain('src-tauri/tauri.release.conf.json')
-    expect(readme).toContain('https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.1/IELTS-Pilot-0.9.1-Windows-x64-Setup.exe')
+    expect(readme).toContain('https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.1/IELTS.Pilot_0.9.1_x64-setup.exe')
   })
 
   it('routes desktop writing assessment through a rustls HTTPS command without embedded credentials', () => {
