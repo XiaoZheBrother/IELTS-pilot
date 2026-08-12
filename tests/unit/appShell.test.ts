@@ -4,7 +4,12 @@ import App from '../../src/App.vue'
 
 describe('App shell', () => {
   it('shows product identity, navigation and the active route', async () => {
-    const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/', name: 'home', component: { template: '<main data-testid="route-view">当前页面</main>' } }] })
+    const empty = { template: '<main />' }
+    const router = createRouter({ history: createMemoryHistory(), routes: [
+      { path: '/', name: 'home', component: { template: '<main data-testid="route-view">当前页面</main>' } },
+      { path: '/library', name: 'library', component: empty },
+      { path: '/analytics', name: 'analytics', component: empty },
+    ] })
     await router.push('/')
     await router.isReady()
     const wrapper = mount(App, { global: { plugins: [router] } })
@@ -14,4 +19,3 @@ describe('App shell', () => {
     expect(wrapper.get('.skip-link').attributes('href')).toBe('#app-content')
   })
 })
-
