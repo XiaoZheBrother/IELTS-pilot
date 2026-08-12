@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import { practiceSets } from '../data/practiceSets'
 import { createRetryPracticeSet, deriveErrorBook, filterErrorBook } from '../domain/errorBook'
 import { questionTypeLabels } from '../domain/questionLabels'
@@ -8,11 +8,16 @@ import type { QuestionType } from '../domain/models'
 import { createBrowserPracticeRepository } from '../storage/practiceRepository'
 
 const repository = createBrowserPracticeRepository()
+const route = useRoute()
 const allSets = [...practiceSets, ...repository.listImportedSets()]
 const entries = ref(deriveErrorBook(repository.listAttempts(), allSets, repository.listMasteredErrorKeys()))
-const type = ref<QuestionType | 'all'>('all')
+const questionTypes = new Set<QuestionType>(Object.keys(questionTypeLabels) as QuestionType[])
+const initialType = typeof route.query.type === 'string' && questionTypes.has(route.query.type as QuestionType)
+  ? route.query.type as QuestionType : 'all'
+const initialState = route.query.state === 'mastered' || route.query.state === 'all' ? route.query.state : 'learning'
+const type = ref<QuestionType | 'all'>(initialType)
 const setId = ref('all')
-const state = ref<'learning' | 'mastered' | 'all'>('learning')
+const state = ref<'learning' | 'mastered' | 'all'>(initialState)
 const query = ref('')
 const retryId = ref('')
 const visibleEntries = computed(() => filterErrorBook(entries.value, { type: type.value, setId: setId.value, state: state.value, query: query.value }))

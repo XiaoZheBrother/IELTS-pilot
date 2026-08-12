@@ -159,9 +159,9 @@ onMounted(refreshAiStatus)
       <section class="settings-section settings-section--compact" aria-labelledby="demo-title">
         <header><p class="section-kicker">05 · Walkthrough</p><h2 id="demo-title">产品演示数据</h2></header>
         <div class="demo-profile-control">
-          <p>一键生成可重复使用的本地样例：3 次阅读记录、1 份草稿、收藏与批注，以及 1 份写作辅助报告。不会联网，也不会删除你的现有数据。</p>
+          <p>一键生成可重复使用的本地样例：3 次阅读记录、1 份草稿、收藏与批注，以及 2 份可比较的写作辅助报告。不会联网，也不会删除你的现有数据。</p>
           <div v-if="demoConfirmationOpen" class="demo-profile-confirm" role="alert">
-            <p>将写入 3 次阅读记录和 1 份写作报告；使用固定编号，重复安装只会刷新样例。</p>
+            <p>将写入 3 次阅读记录和 2 份写作报告；使用固定编号，重复安装只会刷新样例。</p>
             <button type="button" @click="demoConfirmationOpen = false">取消</button>
             <button data-testid="confirm-demo-profile" class="signal-action" type="button" @click="confirmDemoProfile">确认安装</button>
           </div>

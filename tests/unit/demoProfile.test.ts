@@ -14,7 +14,7 @@ describe('installDemoProfile', () => {
 
     const result = installDemoProfile(practice, writing, () => new Date('2026-08-12T09:30:00.000Z'))
 
-    expect(result).toEqual({ readingAttempts: 3, writingReports: 1, message: expect.stringContaining('演示数据') })
+    expect(result).toEqual({ readingAttempts: 3, writingReports: 2, message: expect.stringContaining('演示数据') })
     expect(practice.listAttempts()).toHaveLength(3)
     expect(practice.listAttempts().some(({ score }) => score.items.some(({ isCorrect }) => !isCorrect))).toBe(true)
     expect(practice.getDraft('shade-networks')?.answers).toBeTruthy()
@@ -34,6 +34,6 @@ describe('installDemoProfile', () => {
     expect(practice.listAttempts()).toHaveLength(3)
     expect(practice.listFavoriteSetIds()).toContain('shade-networks')
     expect(practice.listFavoriteQuestionIds()).toContain('shade_q2')
-    expect(writing.listReports()).toHaveLength(1)
+    expect(writing.listReports()).toHaveLength(2)
   })
 })

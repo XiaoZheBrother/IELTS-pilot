@@ -1,4 +1,4 @@
-import { buildAssistantMessages, buildCoachOverview, buildLearningSnapshot } from '../../src/domain/learningAssistant'
+import { buildAssistantMessages, buildCoachOverview, buildEvidenceCatalog, buildLearningSnapshot } from '../../src/domain/learningAssistant'
 import type { Attempt } from '../../src/domain/models'
 import type { WritingAssessmentReport } from '../../src/domain/writingAssessment'
 
@@ -32,6 +32,12 @@ const writingReport: WritingAssessmentReport = {
   ],
   strengths: ['Clear position'], priorities: ['Improve paragraph links'], evidence: [],
   model: 'fixture', promptVersion: 'writing-v1', generatedAt: '2026-08-12T04:00:00.000Z',
+}
+
+const previousWritingReport: WritingAssessmentReport = {
+  ...writingReport, id: 'writing-0', overallBand: 6,
+  generatedAt: '2026-08-05T04:00:00.000Z', priorities: ['Improve paragraph links'],
+  criteria: writingReport.criteria.map((criterion) => ({ ...criterion, band: 6 })),
 }
 
 describe('learning assistant domain', () => {
@@ -69,5 +75,30 @@ describe('learning assistant domain', () => {
     expect(serialized).toContain('Improve paragraph links')
     expect(serialized).not.toContain(writingReport.essay)
     expect(serialized.match(/history-/g)).toHaveLength(6)
+    expect(serialized).toContain('schemaVersion')
+    expect(serialized).toContain('evidenceIds')
+  })
+
+  it('builds stable evidence ids with sample sizes and confidence', () => {
+    const snapshot = buildLearningSnapshot([
+      attempt('a1', '2026-08-10T01:00:00.000Z', 5.5, 1),
+      attempt('a2', '2026-08-11T01:00:00.000Z', 6, 2),
+      attempt('a3', '2026-08-12T01:00:00.000Z', 6.5, 3),
+    ], [], [writingReport])
+    const catalog = buildEvidenceCatalog(snapshot)
+    expect(catalog).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'reading.attempt_count', sampleSize: 3, confidence: 'high' }),
+      expect.objectContaining({ id: 'reading.weakest_type', sampleSize: 15, confidence: 'high' }),
+      expect.objectContaining({ id: 'writing.latest_band', sampleSize: 1, confidence: 'insufficient' }),
+    ]))
+  })
+
+  it('summarizes bounded writing trends without exposing essay or quote text', () => {
+    const snapshot = buildLearningSnapshot([], [], [writingReport, previousWritingReport])
+    expect(snapshot.writing).toMatchObject({ reportCount: 2, trend: 'improving', latestReportId: 'writing-1' })
+    expect(snapshot.writing.criterionAverages[0]).toMatchObject({ averageBand: 6.3, sampleSize: 2 })
+    expect(snapshot.writing.criterionDeltas[0]).toMatchObject({ delta: 0.5 })
+    expect(snapshot.writing.repeatedPriorities[0]).toEqual({ text: 'Improve paragraph links', count: 2 })
+    expect(JSON.stringify(buildAssistantMessages(snapshot, '下一步？'))).not.toContain(writingReport.essay)
   })
 })

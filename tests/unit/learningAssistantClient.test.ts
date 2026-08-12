@@ -68,4 +68,17 @@ describe('learning assistant client', () => {
     expect(failure).toBeInstanceOf(LearningAssistantClientError)
     expect(failure).toMatchObject({ code: 'UPSTREAM_RATE_LIMIT', recoverable: true })
   })
+
+  it('passes an abort signal to web fetch and maps cancellation', async () => {
+    let observedSignal: AbortSignal | undefined
+    const client = createLearningAssistantClient({ desktop: false, fetcher: async (_input, init) => {
+      observedSignal = init?.signal ?? undefined
+      return await new Promise<Response>((_resolve, reject) => observedSignal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')), { once: true }))
+    } })
+    const controller = new AbortController()
+    const pending = client.chat(request, settings, { signal: controller.signal })
+    controller.abort()
+    await expect(pending).rejects.toMatchObject({ code: 'ABORTED' })
+    expect(observedSignal).toBe(controller.signal)
+  })
 })

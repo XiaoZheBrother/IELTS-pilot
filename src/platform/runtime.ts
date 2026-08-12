@@ -1,5 +1,5 @@
 export const APP_NAME = 'IELTS Pilot'
-export const APP_VERSION = '0.9.2'
+export const APP_VERSION = '0.9.5'
 
 export function isDesktopRuntime(scope: typeof globalThis = globalThis): boolean {
   return '__TAURI_INTERNALS__' in scope

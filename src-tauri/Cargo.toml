@@ -1,6 +1,6 @@
 [package]
 name = "ielts-pilot"
-version = "0.9.2"
+version = "0.9.5"
 description = "A local-first IELTS reading and writing practice studio"
 authors = ["XiaoZheBrother"]
 edition = "2021"

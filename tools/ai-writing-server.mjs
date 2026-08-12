@@ -109,7 +109,7 @@ async function chatAssistant(config, value, requestId) {
     const upstream = await fetch(config.endpoint, {
       method: 'POST', signal: controller.signal,
       headers: { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json', 'X-Client-Request-Id': requestId },
-      body: JSON.stringify({ model: config.model, messages, thinking: { type: 'disabled' }, temperature: 0.25, max_tokens: 1_200 }),
+      body: JSON.stringify({ model: config.model, messages, thinking: { type: 'disabled' }, temperature: 0.25, max_tokens: 1_200, response_format: { type: 'json_object' } }),
     })
     if (!upstream.ok) {
       const code = upstream.status === 429 ? 'UPSTREAM_RATE_LIMIT' : upstream.status >= 500 ? 'UPSTREAM_UNAVAILABLE' : 'UPSTREAM_REJECTED'

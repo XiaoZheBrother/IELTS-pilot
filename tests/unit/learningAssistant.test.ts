@@ -18,10 +18,12 @@ const attempt: Attempt = {
 
 function dependencies(overrides: Partial<LearningAssistantDependencies> = {}): LearningAssistantDependencies {
   let messages: LearningAssistantDependencies['conversation']['list'] extends () => infer R ? R : never = []
+  let storedPlan: ReturnType<LearningAssistantDependencies['plan']['get']> = null
   return {
     practice: {
       listAttempts: () => [attempt],
       listMasteredErrorKeys: () => [],
+      listImportedSets: () => [],
     },
     writing: { listReports: () => [] },
     settings: { get: () => ({ endpoint: 'https://api.example.com/v1/chat/completions', model: 'coach-model' }) },
@@ -29,12 +31,24 @@ function dependencies(overrides: Partial<LearningAssistantDependencies> = {}): L
       list: () => messages,
       save: (value) => { messages = value },
       clear: () => { messages = [] },
+      listConversations: () => [],
+      activeConversationId: () => 'fixture',
+      create: () => ({ id: 'fixture', title: '新对话', createdAt: '2026-08-12T02:00:00.000Z', updatedAt: '2026-08-12T02:00:00.000Z', messages: [] }),
+      switchTo: () => true,
+      remove: () => undefined,
+      deleteMessage: (id) => { messages = messages.filter((message) => message.id !== id) },
     },
     client: {
       checkAvailability: async () => ({ available: true, mode: 'gateway', model: 'coach-model' }),
-      chat: async () => ({ content: '先集中练习标题配对，并复盘干扰项。', model: 'coach-model', requestId: 'assistant-1' }),
+      chat: async () => ({ content: JSON.stringify({
+        schemaVersion: 1,
+        conclusion: { text: '先集中练习标题配对，并复盘干扰项。', confidence: 'high', evidenceIds: ['reading.weakest_type'] },
+        facts: [{ text: '标题配对当前正确率为 40%。', evidenceIds: ['reading.weakest_type'] }],
+        inferences: [], actions: [{ id: 'errors', title: '复盘错题', reason: '处理当前错误', kind: 'errors' }],
+      }), model: 'coach-model', requestId: 'assistant-1' }),
       testConnection: async () => ({ ok: true }), saveCredential: async () => undefined, clearCredential: async () => undefined,
     },
+    plan: { get: () => storedPlan, save: (value) => { storedPlan = value }, clear: () => { storedPlan = null } },
     now: () => new Date('2026-08-12T02:00:00.000Z'),
     ...overrides,
   }
@@ -48,6 +62,13 @@ async function mountAssistant(deps = dependencies()) {
   await router.push('/')
   await router.isReady()
   return mount(LearningAssistant, { global: { plugins: [router], provide: { [LEARNING_ASSISTANT_KEY as symbol]: deps }, stubs: { RouterLink } } })
+}
+
+async function openChat(wrapper: Awaited<ReturnType<typeof mountAssistant>>): Promise<void> {
+  await wrapper.get('[data-testid="assistant-orb"]').trigger('click')
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  const tab = wrapper.findAll('[role="tab"]').find((item) => item.text().includes('对话'))!
+  await tab.trigger('click')
 }
 
 describe('LearningAssistant', () => {
@@ -67,7 +88,7 @@ describe('LearningAssistant', () => {
   it('sends an explicit question and persists the reply', async () => {
     const deps = dependencies()
     const wrapper = await mountAssistant(deps)
-    await wrapper.get('[data-testid="assistant-orb"]').trigger('click')
+    await openChat(wrapper)
     await wrapper.get('[data-testid="assistant-quick-question"]').trigger('click')
 
     await new Promise((resolve) => setTimeout(resolve, 0))
@@ -78,8 +99,7 @@ describe('LearningAssistant', () => {
   it('keeps local diagnosis available when AI is not configured', async () => {
     const deps = dependencies({ client: { ...dependencies().client, checkAvailability: async () => ({ available: false, mode: 'gateway', reason: 'unavailable' }) } })
     const wrapper = await mountAssistant(deps)
-    await wrapper.get('[data-testid="assistant-orb"]').trigger('click')
-    await new Promise((resolve) => setTimeout(resolve, 0))
+    await openChat(wrapper)
 
     expect(wrapper.text()).toContain('本地诊断仍可使用')
     expect(wrapper.text()).toContain('前往设置')
@@ -95,7 +115,7 @@ describe('LearningAssistant', () => {
 
   it('refreshes the local snapshot each time it opens', async () => {
     let attempts: Attempt[] = []
-    const deps = dependencies({ practice: { listAttempts: () => attempts, listMasteredErrorKeys: () => [] } })
+    const deps = dependencies({ practice: { listAttempts: () => attempts, listMasteredErrorKeys: () => [], listImportedSets: () => [] } })
     const wrapper = await mountAssistant(deps)
     await wrapper.get('[data-testid="assistant-orb"]').trigger('click')
     expect(wrapper.text()).toContain('还没有足够的练习记录')
@@ -111,7 +131,7 @@ describe('LearningAssistant', () => {
     let chatCalls = 0
     deps.client.chat = async () => { chatCalls += 1; return { content: '', model: '', requestId: '' } }
     const wrapper = await mountAssistant(deps)
-    await wrapper.get('[data-testid="assistant-orb"]').trigger('click')
+    await openChat(wrapper)
     await wrapper.get('[aria-label="给 IELTS Pilot 发消息"]').setValue('请使用 sk-proj-abcdefghijklmnopqrstuvwxyz123456')
     await wrapper.get('.assistant-composer').trigger('submit')
 
@@ -124,7 +144,7 @@ describe('LearningAssistant', () => {
     const deps = dependencies()
     deps.client.chat = async () => { throw new Error('网络暂时不可用') }
     const wrapper = await mountAssistant(deps)
-    await wrapper.get('[data-testid="assistant-orb"]').trigger('click')
+    await openChat(wrapper)
     await wrapper.get('[data-testid="assistant-quick-question"]').trigger('click')
     await new Promise((resolve) => setTimeout(resolve, 0))
 

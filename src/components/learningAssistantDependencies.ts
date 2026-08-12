@@ -7,12 +7,14 @@ import {
 } from '../storage/assistantConversationRepository'
 import { createBrowserPracticeRepository, type PracticeRepository } from '../storage/practiceRepository'
 import { createBrowserWritingRepository, type WritingRepository } from '../storage/writingRepository'
+import { createBrowserLearningPlanRepository, type LearningPlanRepository } from '../storage/learningPlanRepository'
 
 export interface LearningAssistantDependencies {
-  practice: Pick<PracticeRepository, 'listAttempts' | 'listMasteredErrorKeys'>
+  practice: Pick<PracticeRepository, 'listAttempts' | 'listMasteredErrorKeys' | 'listImportedSets'>
   writing: Pick<WritingRepository, 'listReports'>
   settings: Pick<AiSettingsRepository, 'get'>
   conversation: AssistantConversationRepository
+  plan: LearningPlanRepository
   client: LearningAssistantClient
   now: () => Date
 }
@@ -25,6 +27,7 @@ export function createLearningAssistantDependencies(): LearningAssistantDependen
     writing: createBrowserWritingRepository(),
     settings: createBrowserAiSettingsRepository(),
     conversation: createBrowserAssistantConversationRepository(),
+    plan: createBrowserLearningPlanRepository(),
     client: createLearningAssistantClient(),
     now: () => new Date(),
   }

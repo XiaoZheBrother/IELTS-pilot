@@ -35,7 +35,7 @@ type Invoke = (command: string, args?: Record<string, unknown>) => Promise<unkno
 
 export interface LearningAssistantClient {
   checkAvailability: (settings: AiProviderSettings) => Promise<AssistantAvailability>
-  chat: (request: AssistantChatRequest, settings: AiProviderSettings) => Promise<AssistantChatResponse>
+  chat: (request: AssistantChatRequest, settings: AiProviderSettings, options?: { signal?: AbortSignal }) => Promise<AssistantChatResponse>
   testConnection: (settings: AiProviderSettings, apiKey?: string) => Promise<AssistantConnectionResult>
   saveCredential: (apiKey: string) => Promise<void>
   clearCredential: () => Promise<void>
@@ -93,18 +93,30 @@ export function createLearningAssistantClient(options: { fetcher?: typeof fetch;
         return { available: true, mode: 'gateway', ...(typeof value.model === 'string' ? { model: value.model } : {}) }
       } catch { return { available: false, mode: 'gateway', reason: 'unavailable' } }
     },
-    async chat(request, settings) {
+    async chat(request, settings, chatOptions = {}) {
       try {
-        if (desktop) return responseValue(await invoke('chat_assistant', { payload: { ...request, endpoint: settings.endpoint, model: settings.model } }))
+        if (chatOptions.signal?.aborted) throw new LearningAssistantClientError('ABORTED', '已停止生成。')
+        if (desktop) {
+          const pending = invoke('chat_assistant', { payload: { ...request, endpoint: settings.endpoint, model: settings.model } })
+          const value = chatOptions.signal ? await Promise.race([
+            pending,
+            new Promise<never>((_, reject) => chatOptions.signal!.addEventListener('abort', () => reject(new LearningAssistantClientError('ABORTED', '已停止生成。')), { once: true })),
+          ]) : await pending
+          return responseValue(value)
+        }
         const response = await fetcher('/api/v1/assistant/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
           body: JSON.stringify(request),
+          ...(chatOptions.signal ? { signal: chatOptions.signal } : {}),
         })
         if (!response.ok) throw await webError(response)
         return responseValue(await response.json())
       } catch (error) {
         if (error instanceof LearningAssistantClientError) throw error
+        if (chatOptions.signal?.aborted || (error instanceof DOMException && error.name === 'AbortError')) {
+          throw new LearningAssistantClientError('ABORTED', '已停止生成。')
+        }
         throw new LearningAssistantClientError('NETWORK_ERROR', '无法连接 AI 服务，请检查网络或配置后重试。')
       }
     },

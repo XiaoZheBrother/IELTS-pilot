@@ -101,7 +101,8 @@ async fn request(
             "messages": messages,
             "thinking": { "type": "disabled" },
             "temperature": 0.25,
-            "max_tokens": max_tokens
+            "max_tokens": max_tokens,
+            "response_format": { "type": "json_object" }
         }))
         .send()
         .await

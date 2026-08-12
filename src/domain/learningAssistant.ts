@@ -1,7 +1,8 @@
 import { deriveReadingAnalytics, type TypeAccuracy } from './analytics'
 import type { Attempt } from './models'
 import { questionTypeLabels } from './questionLabels'
-import type { WritingAssessmentReport } from './writingAssessment'
+import { WRITING_CRITERIA, type WritingAssessmentReport, type WritingCriterionId } from './writingAssessment'
+import type { CoachEvidenceEntry } from './coachAnswer'
 
 export type LearningTrend = 'insufficient' | 'improving' | 'stable' | 'declining'
 export type CoachConfidence = 'insufficient' | 'medium' | 'high'
@@ -27,6 +28,12 @@ export interface LearningSnapshot {
     reportCount: number
     latestBand: number | null
     latestPriority: string | null
+    latestReportId: string | null
+    trend: LearningTrend
+    criterionAverages: Array<{ criterion: WritingCriterionId; averageBand: number; sampleSize: number }>
+    criterionDeltas: Array<{ criterion: WritingCriterionId; delta: number | null }>
+    repeatedPriorities: Array<{ text: string; count: number }>
+    evidenceCount: number
   }
 }
 
@@ -46,6 +53,35 @@ export interface CoachInsight {
 export interface AssistantProviderMessage {
   role: 'system' | 'user'
   content: string
+}
+
+export function buildEvidenceCatalog(snapshot: LearningSnapshot): CoachEvidenceEntry[] {
+  const { reading, writing } = snapshot
+  const readingConfidence: CoachConfidence = reading.attemptCount >= 3 ? 'high' : reading.attemptCount ? 'medium' : 'insufficient'
+  const entries: CoachEvidenceEntry[] = [
+    { id: 'reading.attempt_count', label: '练习记录', value: `${reading.attemptCount} 次`, sampleSize: reading.attemptCount, confidence: readingConfidence },
+    { id: 'reading.average_band', label: '平均估算', value: `Band ${reading.averageBand.toFixed(1)}`, sampleSize: reading.attemptCount, confidence: readingConfidence },
+    { id: 'reading.best_band', label: '最佳估算', value: `Band ${reading.bestBand.toFixed(1)}`, sampleSize: reading.attemptCount, confidence: readingConfidence },
+    { id: 'reading.trend', label: '近期趋势', value: trendLabel(reading.trend), sampleSize: reading.recent.length, confidence: reading.trend === 'insufficient' ? 'insufficient' : 'high' },
+    { id: 'reading.open_errors', label: '待巩固错题', value: `${reading.openErrorCount} 题`, sampleSize: reading.openErrorCount, confidence: reading.attemptCount ? 'high' : 'insufficient' },
+  ]
+  if (reading.weakestType) entries.push({
+    id: 'reading.weakest_type', label: '薄弱题型',
+    value: `${questionTypeLabels[reading.weakestType.type]} ${reading.weakestType.percentage}%（${reading.weakestType.total} 题）`,
+    sampleSize: reading.weakestType.total, confidence: reading.weakestType.total >= 5 ? 'high' : 'insufficient',
+  })
+  entries.push({ id: 'writing.report_count', label: '写作报告', value: `${writing.reportCount} 份`, sampleSize: writing.reportCount, confidence: writing.reportCount >= 2 ? 'high' : writing.reportCount ? 'medium' : 'insufficient' })
+  if (writing.latestBand !== null) entries.push({ id: 'writing.latest_band', label: '最近写作辅助分', value: `Band ${writing.latestBand.toFixed(1)}`, sampleSize: writing.reportCount, confidence: writing.reportCount >= 2 ? 'high' : 'insufficient' })
+  entries.push({ id: 'writing.trend', label: '写作趋势', value: trendLabel(writing.trend), sampleSize: writing.reportCount, confidence: writing.trend === 'insufficient' ? 'insufficient' : 'high' })
+  writing.criterionAverages.forEach(({ criterion, averageBand, sampleSize }) => entries.push({
+    id: `writing.criterion.${criterion}`, label: WRITING_CRITERIA.find(({ id }) => id === criterion)?.label ?? criterion,
+    value: `Band ${averageBand.toFixed(1)}`, sampleSize, confidence: sampleSize >= 2 ? 'high' : 'insufficient',
+  }))
+  if (writing.repeatedPriorities[0]) entries.push({
+    id: 'writing.repeated_priority', label: '重复写作优先项', value: writing.repeatedPriorities[0].text,
+    sampleSize: writing.repeatedPriorities[0].count, confidence: writing.repeatedPriorities[0].count >= 2 ? 'high' : 'insufficient',
+  })
+  return entries
 }
 
 function deriveTrend(recent: LearningSnapshot['reading']['recent']): LearningTrend {
@@ -70,7 +106,28 @@ export function buildLearningSnapshot(
   const analytics = deriveReadingAnalytics(attempts)
   const mastered = new Set(masteredErrorKeys)
   const recent = analytics.recentTrend.map(({ percentage, band, submittedAt }) => ({ percentage, band, submittedAt }))
-  const latestWriting = [...writingReports].sort((left, right) => Date.parse(right.generatedAt) - Date.parse(left.generatedAt))[0]
+  const recentWriting = [...writingReports].sort((left, right) => Date.parse(right.generatedAt) - Date.parse(left.generatedAt)).slice(0, 5)
+  const latestWriting = recentWriting[0]
+  const previousWriting = recentWriting[1]
+  const criterionAverages = WRITING_CRITERIA.flatMap(({ id }): LearningSnapshot['writing']['criterionAverages'] => {
+    const values = recentWriting.flatMap(({ criteria }) => criteria.filter(({ criterion }) => criterion === id).map(({ band }) => band))
+    return values.length ? [{ criterion: id, averageBand: Math.round(values.reduce((sum, value) => sum + value, 0) / values.length * 10) / 10, sampleSize: values.length }] : []
+  })
+  const criterionDeltas = WRITING_CRITERIA.map(({ id }) => {
+    const latest = latestWriting?.criteria.find(({ criterion }) => criterion === id)?.band
+    const previous = previousWriting?.criteria.find(({ criterion }) => criterion === id)?.band
+    return { criterion: id, delta: latest === undefined || previous === undefined ? null : latest - previous }
+  })
+  const priorityCounts = new Map<string, number>()
+  recentWriting.flatMap(({ priorities }) => priorities.slice(0, 3)).forEach((priority) => {
+    const bounded = priority.trim().slice(0, 240)
+    if (bounded) priorityCounts.set(bounded, (priorityCounts.get(bounded) ?? 0) + 1)
+  })
+  const repeatedPriorities = [...priorityCounts.entries()].filter(([, count]) => count >= 2)
+    .map(([text, count]) => ({ text, count })).sort((left, right) => right.count - left.count || left.text.localeCompare(right.text)).slice(0, 3)
+  const writingTrend: LearningTrend = recentWriting.length < 2 ? 'insufficient'
+    : latestWriting!.overallBand - recentWriting[recentWriting.length - 1]!.overallBand >= 0.5 ? 'improving'
+      : latestWriting!.overallBand - recentWriting[recentWriting.length - 1]!.overallBand <= -0.5 ? 'declining' : 'stable'
   return {
     reading: {
       attemptCount: analytics.attemptCount,
@@ -86,6 +143,12 @@ export function buildLearningSnapshot(
       reportCount: writingReports.length,
       latestBand: latestWriting?.overallBand ?? null,
       latestPriority: latestWriting?.priorities[0] ?? null,
+      latestReportId: latestWriting?.id ?? null,
+      trend: writingTrend,
+      criterionAverages,
+      criterionDeltas,
+      repeatedPriorities,
+      evidenceCount: recentWriting.reduce((sum, report) => sum + report.evidence.length, 0),
     },
   }
 }
@@ -176,11 +239,20 @@ export function buildAssistantMessages(
   question: string,
   history: AssistantConversationMessage[] = [],
 ): AssistantProviderMessage[] {
-  const system = '你是 IELTS Pilot，一名基于本地学习数据提供建议的 IELTS 学习助手。必须区分已给出的事实与建议；关键判断要引用 LearningSnapshot 中的数字作为轻量证据；样本不足时明确说明；不能声称这是官方 IELTS 成绩，也不能编造用户未提供的数据。回答使用简体中文，先给结论，再给最多三条可执行建议，保持简洁。'
+  const system = '你是 IELTS Pilot，一名基于本地学习数据提供建议的 IELTS 学习助手。只返回 JSON，不要 Markdown。必须使用 schemaVersion 1；结论、事实和推断只引用 EvidenceCatalog 中存在的 evidenceIds；样本不足时不得声称稳定、确定、一定或保证提分；不能声称这是官方 IELTS 成绩；最多给三条行动，kind 只能是 practice、errors、writing 或 plan，不得输出 URL。JSON 字段必须是 schemaVersion、conclusion、facts、inferences、actions。conclusion 和 inferences 包含 text、confidence、evidenceIds；facts 包含 text、evidenceIds；actions 包含 id、title、reason、kind 和可选 targetId。使用简体中文。'
   const payload = {
+    schemaVersion: 1,
+    EvidenceCatalog: buildEvidenceCatalog(snapshot),
     LearningSnapshot: snapshot,
     recentConversation: boundedHistory(history),
     question: question.trim().slice(0, 2_000),
+    responseSchema: {
+      schemaVersion: 1,
+      conclusion: { text: 'string', confidence: 'insufficient|medium|high', evidenceIds: ['reading.attempt_count'] },
+      facts: [{ text: 'string', evidenceIds: ['evidence.id'] }],
+      inferences: [{ text: 'string', confidence: 'insufficient|medium|high', evidenceIds: ['evidence.id'] }],
+      actions: [{ id: 'string', title: 'string', reason: 'string', kind: 'practice|errors|writing|plan', targetId: 'optional string' }],
+    },
   }
   return [
     { role: 'system', content: system },
