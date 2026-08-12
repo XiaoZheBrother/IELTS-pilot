@@ -20,5 +20,11 @@ describe('LibraryView', () => {
     expect(wrapper.text()).toContain('授权')
     expect(wrapper.get('input[type="file"]').attributes('accept')).toBe('application/json,.json')
   })
+
+  it('favorites a practice set from the index', async () => {
+    const wrapper = mount(LibraryView, { global: { stubs: { RouterLink: true } } })
+    await wrapper.findAll('[data-testid="favorite-set"]')[0]!.trigger('click')
+    expect(wrapper.findAll('[data-testid="favorite-set"]')[0]!.attributes('aria-pressed')).toBe('true')
+  })
 })
 
