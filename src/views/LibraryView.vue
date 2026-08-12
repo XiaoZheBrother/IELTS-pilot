@@ -35,11 +35,11 @@ async function importPackage(event: Event): Promise<void> {
   const file = input.files?.[0]
   if (!file) return
   try {
-    const result = validateContentPackage(JSON.parse(await file.text()))
+    const text = await file.text()
+    const result = validateContentPackage(JSON.parse(text))
     if (!result.ok) { importMessage.value = `导入失败：${result.errors[0]}`; return }
-    repository.saveImportedSets(result.value.sets)
-    importedSets.value = repository.listImportedSets()
-    importMessage.value = `已导入 ${result.value.sets.length} 套授权练习。`
+    sessionStorage.setItem('ielts-pilot:pending-package', text)
+    importMessage.value = `已读取 ${result.value.name}，请前往题库包管理确认授权、冲突和安装。`
   } catch {
     importMessage.value = '导入失败：文件不是有效的 JSON 内容包。'
   } finally {
@@ -59,9 +59,9 @@ async function importPackage(event: Event): Promise<void> {
       <label class="search-field"><span>搜索</span><input v-model.trim="query" type="search" placeholder="标题、主题或关键词" /></label>
       <label><span>难度</span><select v-model="difficulty" name="difficulty"><option value="all">全部</option><option value="foundation">基础</option><option value="medium">中等</option><option value="advanced">进阶</option></select></label>
       <label><span>题型</span><select v-model="type" name="type"><option value="all">全部</option><option v-for="(label, key) in questionTypeLabels" :key="key" :value="key">{{ label }}</option></select></label>
-      <label class="import-control"><span>授权内容</span><input type="file" accept="application/json,.json" @change="importPackage" /><b>导入 JSON</b></label>
+      <label class="import-control"><span>授权内容</span><input type="file" accept="application/json,.json" @change="importPackage" /><b>读取 JSON</b></label>
     </section>
-    <p class="import-feedback" aria-live="polite">{{ importMessage }}</p>
+    <p class="import-feedback" aria-live="polite">{{ importMessage }} <RouterLink v-if="importMessage.includes('题库包管理')" to="/library/packages">打开安装预览 →</RouterLink></p>
 
     <section class="library-index" aria-live="polite">
       <header><span>练习内容</span><span>难度</span><span>题量</span><span>题型</span><span>操作</span></header>
