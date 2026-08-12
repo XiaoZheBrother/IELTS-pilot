@@ -3,6 +3,10 @@ import { inject, onMounted, reactive, ref } from 'vue'
 import type { ReaderPreferences, ReaderTheme } from '../domain/models'
 import { applyReaderPreferences } from '../composables/useReaderPreferences'
 import { installDemoProfile } from '../domain/demoProfile'
+import { buildSupportDiagnostic } from '../domain/supportDiagnostics'
+import { APP_VERSION, isDesktopRuntime, platformLabel } from '../platform/runtime'
+import { createBrowserAssistantConversationRepository } from '../storage/assistantConversationRepository'
+import { createBrowserLearningPlanRepository } from '../storage/learningPlanRepository'
 import { createBrowserPracticeRepository } from '../storage/practiceRepository'
 import { createBrowserWritingRepository } from '../storage/writingRepository'
 import { AI_SETTINGS_VIEW_KEY, DEFAULT_AI_SETTINGS_VIEW_DEPENDENCIES } from './aiSettingsViewDependencies'
@@ -17,6 +21,7 @@ const aiBusy = ref(false)
 const aiFeedback = ref('正在检查 AI 服务…')
 const aiHasKey = ref(false)
 const aiAvailable = ref(false)
+const diagnosticFeedback = ref('尚未生成诊断文件。')
 
 const themes: Array<{ id: ReaderTheme; name: string; description: string }> = [
   { id: 'paper', name: '纸张', description: '明亮中性，适合日间专注。' },
@@ -94,6 +99,41 @@ async function clearAiCredential(): Promise<void> {
   finally { aiBusy.value = false }
 }
 
+function exportDiagnostics(): void {
+  const practiceBackup = JSON.parse(repository.exportBackup()) as {
+    drafts?: Record<string, unknown>; attempts?: unknown[]; installedPackages?: unknown[]
+  }
+  const writing = createBrowserWritingRepository().exportBackup()
+  const conversations = createBrowserAssistantConversationRepository().listConversations()
+  const plan = createBrowserLearningPlanRepository().get()
+  const diagnostic = buildSupportDiagnostic({
+    appVersion: APP_VERSION,
+    runtime: isDesktopRuntime() ? 'desktop' : 'browser',
+    platform: platformLabel(),
+    storage: {
+      readable: true,
+      readingAttempts: practiceBackup.attempts?.length ?? 0,
+      readingDrafts: Object.keys(practiceBackup.drafts ?? {}).length,
+      installedPackages: practiceBackup.installedPackages?.length ?? 0,
+      writingDrafts: Object.keys(writing.drafts).length,
+      writingReports: writing.reports.length,
+      planItems: plan?.items.length ?? 0,
+      conversations: conversations.length,
+      messages: conversations.reduce((sum, conversation) => sum + conversation.messages.length, 0),
+    },
+    ai: { available: aiAvailable.value, credentialConfigured: aiHasKey.value, mode: aiDependencies.desktop ? 'desktop' : 'gateway' },
+    update: { supported: aiDependencies.desktop, lastStatus: 'not-checked' },
+  })
+  const blob = new Blob([JSON.stringify(diagnostic, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `ielts-pilot-diagnostic-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
+  anchor.click()
+  URL.revokeObjectURL(url)
+  diagnosticFeedback.value = `诊断已生成：v${APP_VERSION} · ${diagnostic.storage.readingAttempts} 次阅读 · ${diagnostic.storage.writingReports} 份写作报告。`
+}
+
 onMounted(refreshAiStatus)
 </script>
 
@@ -166,6 +206,26 @@ onMounted(refreshAiStatus)
             <button data-testid="confirm-demo-profile" class="signal-action" type="button" @click="confirmDemoProfile">确认安装</button>
           </div>
           <button v-else data-testid="install-demo-profile" type="button" @click="demoConfirmationOpen = true">准备演示数据</button>
+        </div>
+      </section>
+
+      <section class="settings-section support-diagnostic-section" aria-labelledby="diagnostic-title">
+        <header><p class="section-kicker">06 · Support</p><h2 id="diagnostic-title">支持与诊断</h2></header>
+        <div class="support-diagnostic-layout">
+          <div class="diagnostic-manifest">
+            <p>遇到更新或 AI 连接问题时，可把这份只含状态和计数的 JSON 发给维护者。</p>
+            <dl>
+              <div><dt>包含</dt><dd>应用版本、运行方式、数据数量、AI 可用状态</dd></div>
+              <div><dt>排除</dt><dd>不包含 API Key、AI Endpoint、作文原文、答案、题目内容、对话内容、同步或代理地址</dd></div>
+            </dl>
+          </div>
+          <aside class="diagnostic-privacy-card">
+            <span>PRIVACY SAFE</span>
+            <strong>白名单诊断</strong>
+            <p>程序按固定字段生成，不会扫描或附带学习正文。</p>
+            <button data-testid="export-diagnostics" class="signal-action" type="button" @click="exportDiagnostics">导出诊断 JSON</button>
+            <small aria-live="polite">{{ diagnosticFeedback }}</small>
+          </aside>
         </div>
       </section>
 

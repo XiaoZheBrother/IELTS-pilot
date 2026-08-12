@@ -62,6 +62,7 @@ export interface PracticeRepository {
   listMasteredErrorKeys: () => string[]
   setErrorMastered: (key: string, mastered: boolean) => void
   exportBackup: () => string
+  inspectBackup: (value: string) => BackupImportResult
   importBackup: (value: string) => BackupImportResult
 }
 
@@ -217,6 +218,23 @@ function writeState(storage: Storage, state: PracticeBackupV4): void {
   storage.setItem(STORAGE_KEY, JSON.stringify(state))
 }
 
+function inspectBackup(value: string): { result: BackupImportResult; state?: PracticeBackupV4 } {
+  let raw: unknown
+  try { raw = JSON.parse(value) as unknown } catch { return { result: { ok: false, error: '备份文件不是有效 JSON。' } } }
+  if (!isRecord(raw) || (raw.version !== 2 && raw.version !== 3 && raw.version !== 4)) {
+    return { result: { ok: false, error: '仅支持版本 2、3 或 4 的阅读备份文件。' } }
+  }
+  const parsed = migrateState(raw)
+  if (!parsed) return { result: { ok: false, error: '阅读备份格式无效或已经损坏。' } }
+  return {
+    state: parsed,
+    result: {
+      ok: true, drafts: Object.keys(parsed.drafts).length, attempts: parsed.attempts.length,
+      importedSets: parsed.installedPackages.reduce((sum, item) => sum + item.sets.length, 0),
+    },
+  }
+}
+
 export function parsePracticeBackup(value: string | unknown): PracticeBackupV4 | null {
   if (typeof value !== 'string') return migrateState(value)
   try { return migrateState(JSON.parse(value) as unknown) } catch { return null }
@@ -299,14 +317,12 @@ export function createPracticeRepository(storage: Storage, now: () => Date = () 
     listMasteredErrorKeys() { return clone(readState(storage).masteredErrorKeys) },
     setErrorMastered(key, mastered) { const state = readState(storage); state.masteredErrorKeys = mastered ? [...new Set([...state.masteredErrorKeys, key])] : state.masteredErrorKeys.filter((item) => item !== key); mastered ? markPresent(state, `mastered-error:${key}`, now) : markRemoved(state, `mastered-error:${key}`, now); writeState(storage, state) },
     exportBackup() { return serializePracticeBackup(readState(storage)) },
+    inspectBackup(value) { return inspectBackup(value).result },
     importBackup(value) {
-      let raw: unknown
-      try { raw = JSON.parse(value) as unknown } catch { return { ok: false, error: '备份文件不是有效 JSON。' } }
-      if (!isRecord(raw) || (raw.version !== 2 && raw.version !== 3 && raw.version !== 4)) return { ok: false, error: '仅支持版本 2、3 或 4 的备份文件。' }
-      const parsed = migrateState(raw)
-      if (!parsed) return { ok: false, error: '备份文件格式无效或已损坏。' }
-      writeState(storage, parsed)
-      return { ok: true, drafts: Object.keys(parsed.drafts).length, attempts: parsed.attempts.length, importedSets: parsed.installedPackages.reduce((sum, item) => sum + item.sets.length, 0) }
+      const inspected = inspectBackup(value)
+      if (!inspected.state || !inspected.result.ok) return inspected.result
+      writeState(storage, inspected.state)
+      return inspected.result
     },
   }
 }

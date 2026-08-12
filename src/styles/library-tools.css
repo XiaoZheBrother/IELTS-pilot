@@ -173,10 +173,25 @@
 .ai-settings-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .ai-settings-actions button { min-height: 44px; padding: 0 16px; border: 1px solid var(--line-strong); background: var(--paper-bright); }
 .ai-settings-actions .signal-action { border-color: var(--signal); background: var(--signal); }
+.support-diagnostic-layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(250px, .8fr); border: 1px solid var(--line-strong); background: var(--paper-bright); }
+.diagnostic-manifest { padding: 27px; border-right: 1px solid var(--line-strong); }
+.diagnostic-manifest > p { margin: 0 0 24px; color: var(--ink-soft); line-height: 1.75; }
+.diagnostic-manifest dl { display: grid; gap: 16px; margin: 0; }
+.diagnostic-manifest dl > div { display: grid; grid-template-columns: 74px 1fr; gap: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.diagnostic-manifest dt { color: var(--signal); font-size: 10px; font-weight: 800; }
+.diagnostic-manifest dd { margin: 0; font-size: 11px; line-height: 1.7; }
+.diagnostic-privacy-card { display: flex; min-height: 245px; flex-direction: column; padding: 27px; background: var(--paper-muted); }
+.diagnostic-privacy-card > span { color: var(--sage-strong); font-size: 9px; font-weight: 900; letter-spacing: .16em; }
+.diagnostic-privacy-card > strong { margin-top: 15px; font-size: 22px; }
+.diagnostic-privacy-card > p { margin: 9px 0 22px; color: var(--ink-soft); font-size: 11px; line-height: 1.7; }
+.diagnostic-privacy-card button { min-height: 44px; border: 0; }
+.diagnostic-privacy-card small { margin-top: 13px; color: var(--ink-soft); line-height: 1.55; }
 
 @media (max-width: 640px) {
   .ai-settings-fields { grid-template-columns: 1fr; }
   .ai-settings-fields label:last-child { grid-column: auto; }
+  .support-diagnostic-layout { grid-template-columns: 1fr; }
+  .diagnostic-manifest { border-right: 0; border-bottom: 1px solid var(--line-strong); }
 }
 
 .about-ledger { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: 35px; border: 1px solid var(--line-strong); background: var(--paper-bright); }

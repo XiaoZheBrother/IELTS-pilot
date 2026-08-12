@@ -27,11 +27,15 @@ export interface AssistantConversation {
   messages: AssistantStoredMessage[]
 }
 
-interface AssistantConversationState {
+export interface AssistantConversationBackupV2 {
   version: 2
   activeConversationId: string
   conversations: AssistantConversation[]
 }
+
+export type AssistantBackupResult =
+  | { ok: true; conversations: number; messages: number }
+  | { ok: false; error: string }
 
 export interface AssistantConversationRepository {
   list: () => AssistantStoredMessage[]
@@ -43,6 +47,9 @@ export interface AssistantConversationRepository {
   switchTo: (conversationId: string) => boolean
   remove: (conversationId: string) => void
   deleteMessage: (messageId: string) => void
+  exportBackup: () => AssistantConversationBackupV2
+  inspectBackup: (value: unknown) => AssistantBackupResult
+  importBackup: (value: unknown) => AssistantBackupResult
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -109,23 +116,29 @@ function normalizeConversation(value: unknown): AssistantConversation | null {
   }
 }
 
-function parse(serialized: string | null): AssistantConversationState | null {
+function parseValue(raw: unknown, strict = false): AssistantConversationBackupV2 | null {
+  if (!isRecord(raw) || raw.version !== 2 || typeof raw.activeConversationId !== 'string' || !Array.isArray(raw.conversations)) return null
+  const conversations = raw.conversations.map(normalizeConversation).filter((item): item is AssistantConversation => Boolean(item))
+    .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt)).slice(0, MAX_CONVERSATIONS)
+  if (!conversations.length || (strict && conversations.length !== raw.conversations.length)) return null
+  if (strict && raw.conversations.some((conversation) => isRecord(conversation) && Array.isArray(conversation.messages)
+    && normalizeConversation(conversation)?.messages.length !== conversation.messages.length)) return null
+  return {
+    version: 2,
+    activeConversationId: conversations.some(({ id }) => id === raw.activeConversationId) ? raw.activeConversationId : conversations[0]!.id,
+    conversations,
+  }
+}
+
+function parse(serialized: string | null): AssistantConversationBackupV2 | null {
   if (!serialized) return null
   try {
     const raw = JSON.parse(serialized) as unknown
-    if (!isRecord(raw) || raw.version !== 2 || typeof raw.activeConversationId !== 'string' || !Array.isArray(raw.conversations)) return null
-    const conversations = raw.conversations.map(normalizeConversation).filter((item): item is AssistantConversation => Boolean(item))
-      .sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt)).slice(0, MAX_CONVERSATIONS)
-    if (!conversations.length) return null
-    return {
-      version: 2,
-      activeConversationId: conversations.some(({ id }) => id === raw.activeConversationId) ? raw.activeConversationId : conversations[0]!.id,
-      conversations,
-    }
+    return parseValue(raw)
   } catch { return null }
 }
 
-function migrateLegacy(storage: Storage, now: Date): AssistantConversationState | null {
+function migrateLegacy(storage: Storage, now: Date): AssistantConversationBackupV2 | null {
   const serialized = storage.getItem(LEGACY_STORAGE_KEY)
   if (!serialized) return null
   try {
@@ -143,18 +156,18 @@ function migrateLegacy(storage: Storage, now: Date): AssistantConversationState 
 }
 
 export function createAssistantConversationRepository(storage: Storage, now: () => Date = () => new Date()): AssistantConversationRepository {
-  function write(state: AssistantConversationState): void {
+  function write(state: AssistantConversationBackupV2): void {
     storage.setItem(STORAGE_KEY, JSON.stringify(state))
   }
-  function read(): AssistantConversationState {
+  function read(): AssistantConversationBackupV2 {
     const current = parse(storage.getItem(STORAGE_KEY)) ?? migrateLegacy(storage, now())
     if (current) { write(current); return current }
     const conversation = defaultConversation(now())
-    const state: AssistantConversationState = { version: 2, activeConversationId: conversation.id, conversations: [conversation] }
+    const state: AssistantConversationBackupV2 = { version: 2, activeConversationId: conversation.id, conversations: [conversation] }
     write(state)
     return state
   }
-  function active(state: AssistantConversationState): AssistantConversation {
+  function active(state: AssistantConversationBackupV2): AssistantConversation {
     return state.conversations.find(({ id }) => id === state.activeConversationId) ?? state.conversations[0]!
   }
   return {
@@ -198,6 +211,19 @@ export function createAssistantConversationRepository(storage: Storage, now: () 
       const state = read(); const conversation = active(state)
       conversation.messages = conversation.messages.filter(({ id }) => id !== messageId)
       conversation.updatedAt = now().toISOString(); write(state)
+    },
+    exportBackup() { return clone(read()) },
+    inspectBackup(value) {
+      const state = parseValue(value, true)
+      return state
+        ? { ok: true, conversations: state.conversations.length, messages: state.conversations.reduce((sum, item) => sum + item.messages.length, 0) }
+        : { ok: false, error: '助手会话备份格式无效或已经损坏。' }
+    },
+    importBackup(value) {
+      const state = parseValue(value, true)
+      if (!state) return { ok: false, error: '助手会话备份格式无效或已经损坏。' }
+      write(state)
+      return { ok: true, conversations: state.conversations.length, messages: state.conversations.reduce((sum, item) => sum + item.messages.length, 0) }
     },
   }
 }

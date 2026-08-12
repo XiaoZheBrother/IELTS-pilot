@@ -11,11 +11,15 @@ import {
 
 const STORAGE_KEY = 'ielts-pilot:writing:v1'
 
-interface WritingStateV1 {
+export interface WritingBackupV1 {
   version: 1
   drafts: Record<string, WritingDraft>
   reports: WritingAssessmentReport[]
 }
+
+export type WritingBackupResult =
+  | { ok: true; drafts: number; reports: number }
+  | { ok: false; error: string }
 
 export interface WritingRepository {
   getDraft: (taskId: string) => WritingDraft | null
@@ -25,9 +29,12 @@ export interface WritingRepository {
   getReport: (reportId: string) => WritingAssessmentReport | null
   saveReport: (report: WritingAssessmentReport) => void
   removeReport: (reportId: string) => void
+  exportBackup: () => WritingBackupV1
+  inspectBackup: (value: unknown) => WritingBackupResult
+  importBackup: (value: unknown) => WritingBackupResult
 }
 
-function emptyState(): WritingStateV1 {
+function emptyState(): WritingBackupV1 {
   return { version: 1, drafts: {}, reports: [] }
 }
 
@@ -111,25 +118,34 @@ function migrateReport(value: unknown): WritingAssessmentReport | null {
   }
 }
 
-function readState(storage: Storage): WritingStateV1 {
+function parseBackup(value: unknown, strict: boolean): WritingBackupV1 | null {
+  if (!isRecord(value) || value.version !== 1 || !isRecord(value.drafts) || !Array.isArray(value.reports)) return null
+  const draftEntries = Object.entries(value.drafts).flatMap(([id, entry]) => {
+    const draft = migrateDraft(entry)
+    return draft ? [[id, draft] as const] : []
+  })
+  const reports = value.reports.map(migrateReport).filter((item): item is WritingAssessmentReport => Boolean(item))
+  if (strict && (draftEntries.length !== Object.keys(value.drafts).length || reports.length !== value.reports.length)) return null
+  return { version: 1, drafts: Object.fromEntries(draftEntries), reports }
+}
+
+function readState(storage: Storage): WritingBackupV1 {
   const serialized = storage.getItem(STORAGE_KEY)
   if (!serialized) return emptyState()
   try {
     const raw = JSON.parse(serialized) as unknown
-    if (!isRecord(raw) || raw.version !== 1 || !isRecord(raw.drafts) || !Array.isArray(raw.reports)) return emptyState()
-    return {
-      version: 1,
-      drafts: Object.fromEntries(Object.entries(raw.drafts).flatMap(([id, value]) => {
-        const draft = migrateDraft(value)
-        return draft ? [[id, draft]] : []
-      })),
-      reports: raw.reports.map(migrateReport).filter((item): item is WritingAssessmentReport => Boolean(item)),
-    }
+    return parseBackup(raw, false) ?? emptyState()
   } catch { return emptyState() }
 }
 
-function writeState(storage: Storage, state: WritingStateV1): void {
+function writeState(storage: Storage, state: WritingBackupV1): void {
   storage.setItem(STORAGE_KEY, JSON.stringify(state))
+}
+
+function inspectBackup(value: unknown): { result: WritingBackupResult; state?: WritingBackupV1 } {
+  const state = parseBackup(value, true)
+  if (!state) return { result: { ok: false, error: '写作备份格式无效或已经损坏。' } }
+  return { state, result: { ok: true, drafts: Object.keys(state.drafts).length, reports: state.reports.length } }
 }
 
 export function createWritingRepository(storage: Storage): WritingRepository {
@@ -147,6 +163,14 @@ export function createWritingRepository(storage: Storage): WritingRepository {
       writeState(storage, state)
     },
     removeReport(reportId) { const state = readState(storage); state.reports = state.reports.filter(({ id }) => id !== reportId); writeState(storage, state) },
+    exportBackup() { return clone(readState(storage)) },
+    inspectBackup(value) { return inspectBackup(value).result },
+    importBackup(value) {
+      const inspected = inspectBackup(value)
+      if (!inspected.state || !inspected.result.ok) return inspected.result
+      writeState(storage, inspected.state)
+      return inspected.result
+    },
   }
 }
 

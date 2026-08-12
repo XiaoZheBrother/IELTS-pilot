@@ -240,7 +240,7 @@ onBeforeUnmount(() => { controller?.abort(); window.removeEventListener('keydown
   <div class="learning-assistant" :class="{ 'learning-assistant--open': open }">
     <section v-if="open" class="assistant-panel" role="dialog" aria-modal="false" aria-label="IELTS Pilot 学习助手">
       <header class="assistant-panel__header">
-        <div><span class="assistant-eyebrow">IELTS PILOT / 0.97</span><h2>Learning cockpit</h2><p>读懂进度，解释判断，把下一步变成可完成的练习。</p></div>
+        <div><span class="assistant-eyebrow">IELTS PILOT / 0.98</span><h2>Learning cockpit</h2><p>读懂进度，解释判断，把下一步变成可完成的练习。</p></div>
         <button ref="closeButton" class="assistant-icon-button" type="button" aria-label="关闭 IELTS Pilot" @click="close">×</button>
       </header>
 

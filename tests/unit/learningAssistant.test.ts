@@ -38,6 +38,9 @@ function dependencies(overrides: Partial<LearningAssistantDependencies> = {}): L
       switchTo: () => true,
       remove: () => undefined,
       deleteMessage: (id) => { messages = messages.filter((message) => message.id !== id) },
+      exportBackup: () => ({ version: 2, activeConversationId: 'fixture', conversations: [{ id: 'fixture', title: '新对话', createdAt: '2026-08-12T02:00:00.000Z', updatedAt: '2026-08-12T02:00:00.000Z', messages }] }),
+      inspectBackup: () => ({ ok: true, conversations: 1, messages: messages.length }),
+      importBackup: () => ({ ok: true, conversations: 1, messages: messages.length }),
     },
     client: {
       checkAvailability: async () => ({ available: true, mode: 'gateway', model: 'coach-model' }),
@@ -54,7 +57,11 @@ function dependencies(overrides: Partial<LearningAssistantDependencies> = {}): L
       },
       testConnection: async () => ({ ok: true }), saveCredential: async () => undefined, clearCredential: async () => undefined,
     },
-    plan: { get: () => storedPlan, save: (value) => { storedPlan = value }, clear: () => { storedPlan = null } },
+    plan: {
+      get: () => storedPlan, save: (value) => { storedPlan = value }, clear: () => { storedPlan = null },
+      inspectBackup: () => ({ ok: true, items: storedPlan?.items.length ?? 0 }),
+      importBackup: () => ({ ok: true, items: storedPlan?.items.length ?? 0 }),
+    },
     now: () => new Date('2026-08-12T02:00:00.000Z'),
     ...overrides,
   }

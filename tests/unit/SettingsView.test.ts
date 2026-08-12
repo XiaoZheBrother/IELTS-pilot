@@ -91,4 +91,12 @@ describe('SettingsView', () => {
     expect(wrapper.find('[data-testid="ai-endpoint"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="ai-model"]').exists()).toBe(false)
   })
+
+  it('shows a privacy-safe support diagnostic exporter', () => {
+    const wrapper = mount(SettingsView)
+    expect(wrapper.get('[data-testid="export-diagnostics"]').text()).toContain('导出诊断')
+    expect(wrapper.text()).toContain('不包含 API Key')
+    expect(wrapper.text()).toContain('作文原文')
+    expect(wrapper.text()).toContain('对话内容')
+  })
 })

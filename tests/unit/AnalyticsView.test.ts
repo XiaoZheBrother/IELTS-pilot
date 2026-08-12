@@ -12,12 +12,25 @@ const attempt: Attempt = {
 describe('AnalyticsView', () => {
   beforeEach(() => { localStorage.clear(); createBrowserPracticeRepository().saveAttempt(attempt) })
 
-  it('shows locally derived study metrics and backup controls', () => {
+  it('shows locally derived study metrics and complete backup controls', () => {
     const wrapper = mount(AnalyticsView, { global: { stubs: { RouterLink: true } } })
     expect(wrapper.text()).toContain('1 次')
     expect(wrapper.text()).toContain('7.0')
     expect(wrapper.text()).toContain('题型诊断')
     expect(wrapper.get('[data-testid="export-backup"]').text()).toContain('导出')
+    expect(wrapper.text()).toContain('完整学习备份')
+    expect(wrapper.text()).toContain('不包含 API Key')
+  })
+
+  it('previews a portable backup before requiring explicit restore confirmation', async () => {
+    const wrapper = mount(AnalyticsView, { global: { stubs: { RouterLink: true } } })
+    const source = createBrowserPracticeRepository().exportBackup()
+    const file = { name: 'legacy-reading.json', text: async () => source } as File
+    Object.defineProperty(wrapper.get('[data-testid="import-backup-input"]').element, 'files', { configurable: true, value: [file] })
+    await wrapper.get('[data-testid="import-backup-input"]').trigger('change')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(wrapper.text()).toContain('旧版阅读备份')
+    expect(wrapper.find('[data-testid="confirm-backup-restore"]').exists()).toBe(true)
   })
 })
 

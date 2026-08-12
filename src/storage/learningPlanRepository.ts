@@ -6,6 +6,8 @@ export interface LearningPlanRepository {
   get: () => LearningPlan | null
   save: (plan: LearningPlan) => void
   clear: () => void
+  inspectBackup: (value: unknown) => { ok: true; items: number } | { ok: false; error: string }
+  importBackup: (value: unknown) => { ok: true; items: number } | { ok: false; error: string }
 }
 
 function normalizePlan(value: unknown): LearningPlan | null {
@@ -45,6 +47,18 @@ export function createLearningPlanRepository(storage: Storage): LearningPlanRepo
       storage.setItem(LEARNING_PLAN_STORAGE_KEY, JSON.stringify(normalized))
     },
     clear() { storage.removeItem(LEARNING_PLAN_STORAGE_KEY) },
+    inspectBackup(value) {
+      if (value === null) return { ok: true, items: 0 }
+      const plan = normalizePlan(value)
+      return plan ? { ok: true, items: plan.items.length } : { ok: false, error: '学习计划备份格式无效或已经损坏。' }
+    },
+    importBackup(value) {
+      if (value === null) { storage.removeItem(LEARNING_PLAN_STORAGE_KEY); return { ok: true, items: 0 } }
+      const plan = normalizePlan(value)
+      if (!plan) return { ok: false, error: '学习计划备份格式无效或已经损坏。' }
+      storage.setItem(LEARNING_PLAN_STORAGE_KEY, JSON.stringify(plan))
+      return { ok: true, items: plan.items.length }
+    },
   }
 }
 
