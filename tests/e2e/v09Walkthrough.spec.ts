@@ -110,7 +110,7 @@ test('walks through the complete v0.9 product with demonstration data', async ({
   await capture(page, '13-secure-updates')
 
   await page.goto('/about')
-  await expect(page.getByText('0.9.0')).toBeVisible()
+  await expect(page.getByText('0.9.1')).toBeVisible()
   await capture(page, '14-about-and-attribution')
 
   await page.goto('/writing')

@@ -10,7 +10,7 @@ describe('desktop packaging configuration', () => {
       bundle: { targets: string[]; createUpdaterArtifacts?: boolean }
       plugins?: { updater?: { pubkey?: string; endpoints?: string[]; windows?: { installMode?: string } } }
     }
-    expect(pkg.version).toBe('0.9.0')
+    expect(pkg.version).toBe('0.9.1')
     expect(config.version).toBe(pkg.version)
     expect(config.bundle.targets).toContain('nsis')
     expect(config.build.frontendDist).toBe('../dist')
@@ -46,13 +46,17 @@ describe('desktop packaging configuration', () => {
 
   it('keeps updater and optional Authenticode secrets inside the release workflow', () => {
     const workflow = readFileSync(resolve('.github/workflows/windows-release.yml'), 'utf8')
+    const readme = readFileSync(resolve('README.md'), 'utf8')
     expect(workflow).toContain('TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}')
     expect(workflow).toContain('TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}')
     expect(workflow).toContain('WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}')
     expect(workflow).toContain('WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}')
     expect(workflow).toContain('tauri.ci-signing.conf.json')
     expect(workflow).toContain('updaterJsonPreferNsis: true')
+    expect(workflow).toContain('releaseDraft: false')
+    expect(workflow).toContain('releaseAssetNamePattern: IELTS-Pilot-[version]-Windows-[arch]-Setup.[ext]')
     expect(workflow).toContain('src-tauri/tauri.release.conf.json')
+    expect(readme).toContain('https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.1/IELTS-Pilot-0.9.1-Windows-x64-Setup.exe')
   })
 
   it('routes desktop writing assessment through a rustls HTTPS command without embedded credentials', () => {

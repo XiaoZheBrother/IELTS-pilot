@@ -4,6 +4,8 @@
 
 > 本项目不是 IELTS 官方产品，不包含官方真题，也不提供官方成绩。
 
+> **Windows 用户：**[直接下载 IELTS Pilot v0.9.1 安装包（x64 Setup.exe）](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.1/IELTS-Pilot-0.9.1-Windows-x64-Setup.exe)。其他版本与校验文件见 [GitHub Releases](https://github.com/XiaoZheBrother/IELTS-pilot/releases/latest)。
+
 完整的产品能力、部署方式、评分机制、安全边界和逐功能走查，请参阅 [v0.9 产品功能说明书](docs/IELTS-Pilot-v0.9-产品功能说明书.md)。
 
 ## v0.9 功能清单
@@ -58,6 +60,8 @@ npm run serve:production -- --config "你的 AI 配置文件路径" --port 4390
 
 ## Windows 桌面版
 
+不需要开发环境时，直接下载并运行 [IELTS Pilot v0.9.1 Windows x64 安装包](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.1/IELTS-Pilot-0.9.1-Windows-x64-Setup.exe)。安装器按当前用户安装，不需要管理员权限。由于当前开源构建没有商业 Authenticode 证书，Windows SmartScreen 可能显示“未知发布者”。
+
 开发模式还需要 Rust stable、Microsoft C++ Build Tools 和 Windows WebView2：
 
 ```bash
@@ -70,9 +74,9 @@ npm run desktop:dev
 npm run desktop:build
 ```
 
-产物位于 `src-tauri/target/release/bundle/nsis/`。安装器按当前用户安装，不需要管理员权限。当前开源构建没有商业代码签名，Windows SmartScreen 可能显示“未知发布者”；请只从本仓库 Release 或自己校验过的源码构建。
+本地构建产物位于 `src-tauri/target/release/bundle/nsis/`。请只从本仓库 Release 或自己校验过的源码构建。
 
-推送 `v*` 标签也会触发 `.github/workflows/windows-release.yml`，验证 Web 应用后生成草稿 Release 和 NSIS 安装器。
+推送 `v*` 标签也会触发 `.github/workflows/windows-release.yml`，验证 Web 应用后发布正式 Release、NSIS 安装器、updater 签名和 `latest.json`。
 
 普通安装器使用 `npm run desktop:build`；包含 updater `.sig` 的发布构建使用 `npm run desktop:release`，并要求在环境变量中提供项目 updater 私钥。密钥与可选 Authenticode 配置见 [Windows 安全发布文档](docs/releasing-windows.md)。
 

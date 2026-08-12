@@ -56,8 +56,9 @@ jobs:
         with:
           tagName: v__VERSION__
           releaseName: IELTS Pilot v__VERSION__
-          releaseBody: Windows NSIS installer generated from the tagged source.
-          releaseDraft: true
+          releaseBody: Windows NSIS installer with signed in-app updater metadata. Download the Setup.exe asset to install IELTS Pilot.
+          releaseDraft: false
           prerelease: false
+          releaseAssetNamePattern: IELTS-Pilot-[version]-Windows-[arch]-Setup.[ext]
           updaterJsonPreferNsis: true
           args: --bundles nsis --config src-tauri/tauri.release.conf.json --config src-tauri/tauri.ci-signing.conf.json
