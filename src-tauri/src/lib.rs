@@ -60,6 +60,15 @@ mod tests {
         let mut invalid = payload("https://api.example.com/chat/completions");
         invalid.messages.pop();
         assert!(validate_assistant_payload(&invalid).is_err());
+        let mut contextual = payload("https://api.example.com/chat/completions");
+        contextual.messages[1].content = "x".repeat(13_000);
+        assert!(validate_assistant_payload(&contextual).is_ok());
+        contextual.messages[1].content = "x".repeat(24_001);
+        assert!(validate_assistant_payload(&contextual).is_err());
+        contextual.messages[1].content = "你".repeat(24_000);
+        assert!(validate_assistant_payload(&contextual).is_ok());
+        contextual.messages[1].content = "你".repeat(24_001);
+        assert!(validate_assistant_payload(&contextual).is_err());
     }
 
     #[test]

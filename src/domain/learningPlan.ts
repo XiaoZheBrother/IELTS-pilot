@@ -4,6 +4,7 @@ import type { Attempt, PracticeSet, QuestionType } from './models'
 import { questionTypeLabels } from './questionLabels'
 import type { WritingAssessmentReport } from './writingAssessment'
 import { writingTasks } from '../data/writingTasks'
+import type { AssistantActionContext } from './assistantPageContext'
 
 export type LearningActionKind = 'practice' | 'errors' | 'writing' | 'plan'
 export type LearningPlanHorizon = 'today' | 'week'
@@ -92,19 +93,23 @@ export function resolveCoachActions(
   snapshot: LearningSnapshot,
   sets: PracticeSet[],
   reports: WritingAssessmentReport[],
+  context?: AssistantActionContext,
 ): ResolvedLearningAction[] {
   const weakType = snapshot.reading.weakestType?.type
-  return answer.actions.flatMap((action): ResolvedLearningAction[] => {
+  const contextualReading = context?.kind.startsWith('reading-') === true
+  const contextualWriting = context?.kind.startsWith('writing-') === true
+  const actionType = contextualReading ? context.questionType ?? weakType : weakType
+  const resolved = answer.actions.flatMap((action): ResolvedLearningAction[] => {
     if (action.kind === 'practice') {
-      const set = bestMatchingSet(sets, weakType, action.targetId)
+      const set = bestMatchingSet(sets, actionType, action.targetId ?? (contextualReading ? context.targetId : undefined))
       if (!set) return []
       return [{
         ...action,
         kind: 'practice',
-        title: action.title || `开始${weakType ? questionTypeLabels[weakType] : '阅读'}练习`,
+        title: action.title || `开始${actionType ? questionTypeLabels[actionType] : '阅读'}练习`,
         to: `/practice/${encoded(set.id)}`,
         estimatedMinutes: set.durationMinutes,
-        ...(weakType ? { questionType: weakType } : {}),
+        ...(actionType ? { questionType: actionType } : {}),
         targetId: set.id,
         sourceEvidenceIds: answer.conclusion.evidenceIds,
       }]
@@ -112,14 +117,15 @@ export function resolveCoachActions(
     if (action.kind === 'errors') return [{
       ...action,
       kind: 'errors',
-      to: weakType ? `/errors?type=${encoded(weakType)}&state=learning` : '/errors?state=learning',
+      to: actionType ? `/errors?type=${encoded(actionType)}&state=learning` : '/errors?state=learning',
       estimatedMinutes: 12,
-      ...(weakType ? { questionType: weakType } : {}),
+      ...(actionType ? { questionType: actionType } : {}),
       sourceEvidenceIds: answer.conclusion.evidenceIds,
     }]
     if (action.kind === 'writing') {
-      const directReport = action.targetId ? reports.find(({ id }) => id === action.targetId) : undefined
-      const directTask = action.targetId ? writingTasks.find(({ id }) => id === action.targetId) : undefined
+      const targetId = action.targetId ?? (contextualWriting ? context.targetId : undefined)
+      const directReport = targetId ? reports.find(({ id }) => id === targetId) : undefined
+      const directTask = targetId ? writingTasks.find(({ id }) => id === targetId) : undefined
       const report = directReport ?? (!directTask ? latestReport(reports) : null)
       return [{
         ...action,
@@ -132,6 +138,13 @@ export function resolveCoachActions(
       }]
     }
     return [{ ...action, kind: 'plan', to: '#learning-plan', estimatedMinutes: 5, sourceEvidenceIds: answer.conclusion.evidenceIds }]
+  })
+  if (!context) return resolved.slice(0, 3)
+  const seenKinds = new Set<LearningActionKind>()
+  return resolved.filter(({ kind }) => {
+    if (seenKinds.has(kind)) return false
+    seenKinds.add(kind)
+    return true
   }).slice(0, 3)
 }
 

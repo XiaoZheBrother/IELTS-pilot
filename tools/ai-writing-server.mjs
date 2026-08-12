@@ -4,7 +4,7 @@ import { extname, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { loadAiConfig, parseServerArgs } from './lib/ai-config.mjs'
 
-const MAX_BODY_BYTES = 32 * 1024
+const MAX_BODY_BYTES = 96 * 1024
 const MIME = new Map([
   ['.html', 'text/html; charset=utf-8'], ['.js', 'text/javascript; charset=utf-8'], ['.css', 'text/css; charset=utf-8'],
   ['.json', 'application/json; charset=utf-8'], ['.svg', 'image/svg+xml'], ['.png', 'image/png'], ['.ico', 'image/x-icon'],
@@ -21,7 +21,7 @@ async function readBody(request) {
   for await (const chunk of request) {
     length += chunk.length
     if (length > MAX_BODY_BYTES) {
-      const error = new Error('Request body exceeds 32 KiB.')
+      const error = new Error('Request body exceeds 96 KiB.')
       error.code = 'BODY_TOO_LARGE'
       throw error
     }
@@ -93,7 +93,7 @@ function validateAssistantChat(value) {
   if (value.messages.length !== 2) throw new Error('Assistant request must include exactly two messages.')
   const messages = value.messages.map((message) => {
     if (!message || typeof message !== 'object' || (message.role !== 'system' && message.role !== 'user')
-      || typeof message.content !== 'string' || !message.content.trim() || message.content.length > 12_000) {
+      || typeof message.content !== 'string' || !message.content.trim() || message.content.length > 24_000) {
       throw new Error('Assistant message is invalid.')
     }
     return { role: message.role, content: message.content }

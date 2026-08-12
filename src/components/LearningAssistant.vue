@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
 import { practiceSets } from '../data/practiceSets'
+import { getMockPracticeSets } from '../data/fullMock'
 import { buildCoachStreamPreview, buildLocalCoachAnswer, formatCoachAnswer, parseCoachAnswer, type CoachAnswer } from '../domain/coachAnswer'
 import {
   ASSISTANT_PROMPT_VERSION, buildAssistantMessages, buildCoachOverview, buildEvidenceCatalog, buildLearningSnapshot,
@@ -12,6 +13,7 @@ import {
   resolveCoachActions, togglePlanItem,
 } from '../domain/learningPlan'
 import { containsSensitiveCredential } from '../domain/sensitiveText'
+import { buildAssistantActionContext, buildAssistantPageContext, type AssistantActionContext, type AssistantPageContext } from '../domain/assistantPageContext'
 import { buildRewriteExercise, recommendNextWritingTask } from '../domain/writingCoach'
 import { writingTasks } from '../data/writingTasks'
 import type { AssistantAvailability } from '../platform/learningAssistantClient'
@@ -25,6 +27,7 @@ import { createLearningAssistantDependencies, LEARNING_ASSISTANT_KEY } from './l
 type AssistantView = 'diagnosis' | 'plan' | 'chat'
 
 const dependencies = inject(LEARNING_ASSISTANT_KEY, null) ?? createLearningAssistantDependencies()
+const route = useRoute()
 const open = ref(false)
 const view = ref<AssistantView>('diagnosis')
 const busy = ref(false)
@@ -47,10 +50,12 @@ const attempts = ref(dependencies.practice.listAttempts())
 const reports = ref(dependencies.writing.listReports())
 const sets = ref([...practiceSets, ...dependencies.practice.listImportedSets()])
 const snapshot = ref(buildLearningSnapshot(attempts.value, dependencies.practice.listMasteredErrorKeys(), reports.value))
-const catalog = computed(() => buildEvidenceCatalog(snapshot.value))
+const pageContext = ref<AssistantPageContext | null>(null)
+const catalog = computed(() => buildEvidenceCatalog(snapshot.value, pageContext.value))
 const overview = computed(() => buildCoachOverview(snapshot.value))
 const isAvailable = computed(() => availability.value?.available === true)
-const quickQuestions = ['分析我最近的学习状态', '我现在最应该练什么？', '帮我制定下一次练习计划']
+const quickQuestions = computed(() => pageContext.value?.suggestedQuestions
+  ?? ['分析我最近的学习状态', '我现在最应该练什么？', '帮我制定下一次练习计划'])
 const localDiagnosis = computed(() => buildLocalCoachAnswer(catalog.value))
 const localActions = computed(() => resolveCoachActions(localDiagnosis.value, snapshot.value, sets.value, reports.value))
 const latestWritingReport = computed(() => [...reports.value].sort((left, right) => Date.parse(right.generatedAt) - Date.parse(left.generatedAt))[0] ?? null)
@@ -60,7 +65,10 @@ const plan = ref(dependencies.plan.get() ?? buildLearningPlan(snapshot.value, se
 const streamingPreview = computed(() => buildCoachStreamPreview(streamingRaw.value))
 const contextStats = computed(() => {
   const recent = messages.value.slice(-6)
-  return { messages: recent.length, characters: recent.reduce((sum, message) => sum + message.content.length, 0) + draft.value.length }
+  return {
+    messages: recent.length,
+    characters: recent.reduce((sum, message) => sum + message.content.length, 0) + draft.value.length + (pageContext.value?.characterCount ?? 0),
+  }
 })
 
 function refreshLocalData(): void {
@@ -68,6 +76,11 @@ function refreshLocalData(): void {
   reports.value = dependencies.writing.listReports()
   sets.value = [...practiceSets, ...dependencies.practice.listImportedSets()]
   snapshot.value = buildLearningSnapshot(attempts.value, dependencies.practice.listMasteredErrorKeys(), reports.value)
+  pageContext.value = buildAssistantPageContext({
+    name: typeof route.name === 'string' ? route.name : null,
+    params: route.params,
+    query: route.query,
+  }, { sets: sets.value, tasks: writingTasks, mockSets: getMockPracticeSets, practice: dependencies.practice, writing: dependencies.writing })
   const stored = dependencies.plan.get()
   const refreshed = stored
     ? refreshLearningPlan(stored, snapshot.value, sets.value, reports.value, attempts.value, dependencies.now())
@@ -114,8 +127,8 @@ function persist(next: AssistantStoredMessage[]): void {
   syncConversationUi()
 }
 
-function resolvedActions(answer: CoachAnswer) {
-  return resolveCoachActions(answer, snapshot.value, sets.value, reports.value)
+function resolvedActions(answer: CoachAnswer, actionContext?: AssistantActionContext) {
+  return resolveCoachActions(answer, snapshot.value, sets.value, reports.value, actionContext)
 }
 
 async function scrollToLatest(): Promise<void> {
@@ -130,26 +143,42 @@ async function send(question = draft.value, replaceAssistantId = ''): Promise<vo
     error.value = '检测到疑似敏感凭据。请删除 API Key 或令牌后再发送；该内容不会保存或发送。'
     return
   }
+  // The learner can change questions or edit a draft without changing routes.
+  // Re-read local repositories at the explicit send boundary so the payload is current.
+  refreshLocalData()
   if (!isAvailable.value) {
     error.value = 'AI 对话尚未配置；本地诊断仍可使用。'
     return
   }
-  error.value = ''; failedQuestion.value = ''; draft.value = ''; streamingRaw.value = ''
   const replacing = Boolean(replaceAssistantId)
   const previous = replacing ? messages.value.filter(({ id }) => id !== replaceAssistantId) : messages.value
+  const history: AssistantConversationMessage[] = previous.map(({ role, content: messageContent }) => ({ role, content: messageContent }))
+  let providerMessages: ReturnType<typeof buildAssistantMessages>
+  try {
+    providerMessages = buildAssistantMessages(snapshot.value, content, history, pageContext.value)
+  } catch (cause) {
+    error.value = cause instanceof Error ? cause.message : '无法构建安全的 AI 上下文，请缩短材料后重试。'
+    draft.value = content
+    return
+  }
+  if (providerMessages.some((message) => message.role === 'user' && containsSensitiveCredential(message.content))) {
+    error.value = '检测到当前材料或学习数据含疑似敏感凭据。请先删除 API Key 或令牌；该问题和材料不会保存或发送。'
+    draft.value = content
+    return
+  }
+  error.value = ''; failedQuestion.value = ''; draft.value = ''; streamingRaw.value = ''
   const existingLastUser = previous[previous.length - 1]?.role === 'user' && previous[previous.length - 1]?.content === content
   const userMessage: AssistantStoredMessage = existingLastUser ? previous[previous.length - 1]! : {
     id: messageId('user'), role: 'user', content: content.slice(0, 2_000), createdAt: dependencies.now().toISOString(),
   }
   const base = existingLastUser ? previous : [...previous, userMessage]
-  const history: AssistantConversationMessage[] = previous.map(({ role, content: messageContent }) => ({ role, content: messageContent }))
   persist(base)
   busy.value = true
   controller = new AbortController()
   await scrollToLatest()
   try {
     const response = await dependencies.client.chatStream(
-      { messages: buildAssistantMessages(snapshot.value, content, history) },
+      { messages: providerMessages },
       dependencies.settings.get(), {
         signal: controller.signal,
         onDelta: (delta) => { streamingRaw.value = `${streamingRaw.value}${delta}`.slice(0, 20_000); void scrollToLatest() },
@@ -166,7 +195,9 @@ async function send(question = draft.value, replaceAssistantId = ''): Promise<vo
     persist([...base, {
       id: messageId('assistant'), role: 'assistant', content: formatCoachAnswer(answer), answer,
       createdAt: dependencies.now().toISOString(), promptVersion: ASSISTANT_PROMPT_VERSION,
-      model: response.model, requestId: response.requestId, ...(response.usage ? { usage: response.usage } : {}),
+      model: response.model, requestId: response.requestId, evidence: catalog.value,
+      actionContext: buildAssistantActionContext(pageContext.value),
+      ...(response.usage ? { usage: response.usage } : {}),
     }])
   } catch (cause) {
     const aborted = cause && typeof cause === 'object' && 'code' in cause && cause.code === 'ABORTED'
@@ -233,6 +264,7 @@ function onKeydown(event: KeyboardEvent): void {
 }
 
 onMounted(() => window.addEventListener('keydown', onKeydown))
+watch(() => route.fullPath, () => { if (open.value) refreshLocalData() })
 onBeforeUnmount(() => { controller?.abort(); window.removeEventListener('keydown', onKeydown) })
 </script>
 
@@ -240,7 +272,7 @@ onBeforeUnmount(() => { controller?.abort(); window.removeEventListener('keydown
   <div class="learning-assistant" :class="{ 'learning-assistant--open': open }">
     <section v-if="open" class="assistant-panel" role="dialog" aria-modal="false" aria-label="IELTS Pilot 学习助手">
       <header class="assistant-panel__header">
-        <div><span class="assistant-eyebrow">IELTS PILOT / 0.98</span><h2>Learning cockpit</h2><p>读懂进度，解释判断，把下一步变成可完成的练习。</p></div>
+        <div><span class="assistant-eyebrow">IELTS PILOT / 0.99</span><h2>Learning cockpit</h2><p>读懂进度，解释判断，把下一步变成可完成的练习。</p></div>
         <button ref="closeButton" class="assistant-icon-button" type="button" aria-label="关闭 IELTS Pilot" @click="close">×</button>
       </header>
 
@@ -283,6 +315,12 @@ onBeforeUnmount(() => { controller?.abort(); window.removeEventListener('keydown
             <ConversationHistory :conversations="conversations" :active-id="activeConversationId" @select="switchConversation" @create="createConversation" @remove="removeConversation" />
             <button v-if="messages.length" type="button" @click="clearConversation">清空</button>
           </div>
+          <article v-if="pageContext" class="assistant-page-context" data-testid="assistant-page-context">
+            <div><span>CURRENT MATERIAL</span><strong>{{ pageContext.label }} · {{ pageContext.title }}</strong><small>{{ pageContext.activeItem }}<template v-if="pageContext.questionCount"> · {{ pageContext.questionCount }} 道题</template></small></div>
+            <i :data-truncated="pageContext.truncated">{{ pageContext.truncated ? '已按上限截断' : '材料已完整加载' }}</i>
+            <p>发送问题时才会把当前页材料交给已配置的 AI；不会发送 API Key。</p>
+            <div><button v-for="question in pageContext.suggestedQuestions" :key="question" type="button" :disabled="busy" @click="send(question)">{{ question }}</button></div>
+          </article>
           <div v-if="availability && !availability.available" class="assistant-unavailable">
             <strong>本地诊断仍可使用</strong><p>AI 对话当前不可用。完成配置后，可结合证据继续追问。</p><RouterLink to="/settings" @click="close">前往设置 →</RouterLink>
           </div>
@@ -293,20 +331,20 @@ onBeforeUnmount(() => { controller?.abort(); window.removeEventListener('keydown
                 <button v-if="message.role === 'assistant'" type="button" aria-label="重新生成回答" :disabled="busy" @click="regenerate(index, message.id)">重生成</button>
                 <button type="button" aria-label="删除消息" @click="deleteMessage(message.id)">删除</button>
               </div></header>
-              <CoachAnswerView v-if="message.answer" :answer="message.answer" :catalog="catalog" :actions="resolvedActions(message.answer)" @navigate="close" @show-plan="view = 'plan'" />
+              <CoachAnswerView v-if="message.answer" :answer="message.answer" :catalog="message.evidence ?? catalog" :actions="resolvedActions(message.answer, message.actionContext)" @navigate="close" @show-plan="view = 'plan'" />
               <SafeMarkdown v-else :content="message.content" />
               <footer v-if="message.role === 'assistant' && (message.promptVersion || message.usage || message.model)" class="assistant-message__meta">
                 <span>{{ message.promptVersion || '旧版回答' }}</span><span v-if="message.model">{{ message.model }}</span><span v-if="message.usage">{{ message.usage.totalTokens }} tokens</span>
               </footer>
             </article>
           </div>
-          <div v-else class="assistant-quick-list"><span>从一个具体问题开始</span><button v-for="(question, index) in quickQuestions" :key="question" type="button" :data-testid="index === 0 ? 'assistant-quick-question' : undefined" :disabled="busy" @click="send(question)">{{ question }} <b aria-hidden="true">↗</b></button></div>
+          <div v-else-if="!pageContext" class="assistant-quick-list"><span>从一个具体问题开始</span><button v-for="(question, index) in quickQuestions" :key="question" type="button" :data-testid="index === 0 ? 'assistant-quick-question' : undefined" :disabled="busy" @click="send(question)">{{ question }} <b aria-hidden="true">↗</b></button></div>
           <article v-if="busy && streamingPreview" class="assistant-stream-preview" aria-live="polite"><span>LIVE · 实时接收</span><SafeMarkdown :content="streamingPreview" /></article>
           <div v-if="busy" class="assistant-thinking" aria-live="polite"><i /><span>正在核对本地证据并组织回答</span><button type="button" @click="stop">停止</button></div>
           <p v-if="error" class="assistant-error" role="alert">{{ error }} <button v-if="failedQuestion && !busy" type="button" @click="send(failedQuestion)">重试</button></p>
           <form class="assistant-composer" @submit.prevent="send()"><textarea ref="input" v-model="draft" rows="2" maxlength="2000" placeholder="追问进度、问题或下一步……" aria-label="给 IELTS Pilot 发消息" /><button type="submit" :disabled="busy || !draft.trim()">发送</button></form>
-          <p class="assistant-context-meter">上下文 {{ contextStats.messages }}/6 条 · {{ contextStats.characters }}/9200 字符</p>
-          <p class="assistant-disclaimer">回答基于本地记录，不代表官方 IELTS 评分。API Key 不进入对话历史。</p>
+          <p class="assistant-context-meter">上下文 {{ contextStats.messages }}/6 条 · 约 {{ contextStats.characters }}/24000 字符</p>
+          <p class="assistant-disclaimer">回答基于本地记录与当前页材料，不代表官方 IELTS 评分。整篇材料不写入对话历史，API Key 永不进入消息。</p>
         </section>
       </div>
     </section>

@@ -10,8 +10,8 @@ import { createBrowserWritingRepository, type WritingRepository } from '../stora
 import { createBrowserLearningPlanRepository, type LearningPlanRepository } from '../storage/learningPlanRepository'
 
 export interface LearningAssistantDependencies {
-  practice: Pick<PracticeRepository, 'listAttempts' | 'listMasteredErrorKeys' | 'listImportedSets'>
-  writing: Pick<WritingRepository, 'listReports'>
+  practice: Pick<PracticeRepository, 'listAttempts' | 'listMasteredErrorKeys' | 'listImportedSets' | 'getDraft' | 'getAttempt'>
+  writing: Pick<WritingRepository, 'listReports' | 'getDraft' | 'getReport'>
   settings: Pick<AiSettingsRepository, 'get'>
   conversation: AssistantConversationRepository
   plan: LearningPlanRepository

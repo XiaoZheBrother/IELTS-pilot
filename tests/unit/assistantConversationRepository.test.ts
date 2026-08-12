@@ -16,15 +16,22 @@ describe('assistant conversation repository', () => {
       { id: 'm1', role: 'user', content: '分析我最近的状态', createdAt: '2026-08-12T01:00:00.000Z' },
       {
         id: 'm2', role: 'assistant', content: '最近趋势上升。', createdAt: '2026-08-12T01:00:01.000Z',
-        promptVersion: 'assistant-v2', model: 'fixture-model', requestId: 'request-1',
+        promptVersion: 'assistant-v3', model: 'fixture-model', requestId: 'request-1',
         usage: { promptTokens: 80, completionTokens: 20, totalTokens: 100 },
+        evidence: [{
+          id: 'context.reading.answer_key', label: '本地答案与解析', value: '标准答案和原文定位已加载',
+          sampleSize: 1, confidence: 'high',
+        }],
+        actionContext: { kind: 'reading-practice', targetId: 'shade-networks', questionType: 'short-answer' },
       },
     ])
     expect(repository.list()).toHaveLength(2)
     expect(repository.list()[1]).toMatchObject({
-      promptVersion: 'assistant-v2', model: 'fixture-model', requestId: 'request-1',
+      promptVersion: 'assistant-v3', model: 'fixture-model', requestId: 'request-1',
       usage: { promptTokens: 80, completionTokens: 20, totalTokens: 100 },
     })
+    expect(repository.list()[1]?.evidence?.[0]).toMatchObject({ id: 'context.reading.answer_key', sampleSize: 1 })
+    expect(repository.list()[1]?.actionContext).toEqual({ kind: 'reading-practice', targetId: 'shade-networks', questionType: 'short-answer' })
     const serialized = storage.getItem('ielts-pilot:assistant:v2') ?? ''
     expect(serialized).not.toMatch(/apiKey|authorization|bearer|credential|secret/i)
     repository.clear()

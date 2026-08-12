@@ -84,7 +84,7 @@ pub fn validate_assistant_payload(payload: &AssistantChatPayload) -> Result<reqw
         return Err("AI model is missing or too long.".to_string());
     }
     if payload.messages.len() != 2 || payload.messages.iter().any(|message| {
-        (message.role != "system" && message.role != "user") || message.content.trim().is_empty() || message.content.len() > 12_000
+        (message.role != "system" && message.role != "user") || message.content.trim().is_empty() || message.content.chars().count() > 24_000
     }) {
         return Err("Assistant messages are invalid.".to_string());
     }

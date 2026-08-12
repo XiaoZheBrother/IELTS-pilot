@@ -1,14 +1,14 @@
 # IELTS Pilot
 
-一个本地优先的 IELTS 阅读与写作练习工作台。v0.9.8 在证据型 AI 学习闭环之上补齐完整学习备份、两阶段恢复和隐私安全诊断导出，让换机与排障都能独立完成。
+一个本地优先的 IELTS 阅读与写作练习工作台。v0.9.9 让悬浮助手理解当前练习、模考、复盘、写作草稿与报告，在用户主动提问时带着原文、题目和本地证据解释“为什么”。
 
 > 本项目不是 IELTS 官方产品，不包含官方真题，也不提供官方成绩。
 
-> **Windows 用户：**[直接下载 IELTS Pilot v0.9.8 安装包（x64 Setup.exe）](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.8/IELTS.Pilot_0.9.8_x64-setup.exe)。其他版本与校验文件见 [GitHub Releases](https://github.com/XiaoZheBrother/IELTS-pilot/releases/latest)。
+> **Windows 用户：**[直接下载 IELTS Pilot v0.9.9 安装包（x64 Setup.exe）](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.9/IELTS.Pilot_0.9.9_x64-setup.exe)。其他版本与校验文件见 [GitHub Releases](https://github.com/XiaoZheBrother/IELTS-pilot/releases/latest)。
 
-完整的助手能力、备份协议、隐私边界、使用方法和验证说明，请参阅 [v0.9.8 产品功能说明书](docs/IELTS-Pilot-v0.98-产品功能说明书.md)。
+完整的助手能力、场景范围、隐私边界和使用方法，请参阅 [v0.9.9 上下文助手说明](docs/IELTS-Pilot-v0.99-上下文助手说明.md)；备份与诊断协议见 [v0.9.8 产品功能说明书](docs/IELTS-Pilot-v0.98-产品功能说明书.md)。
 
-## v0.9.8 功能清单
+## v0.9.9 功能清单
 
 - 5 篇项目原创英文文章，共 54 道题；其中前 3 篇组成 40 题、60 分钟完整阅读模考
 - 12 种题型：单选、多选、T/F/NG、Y/N/NG、标题配对、信息配对、特征配对、句尾配对、简答、句子填空、摘要选词、图示填空
@@ -35,11 +35,14 @@
 - 写作字数、计时、自动草稿、显式发送确认、历史报告与原文证据回溯
 - 按任务回应、连贯衔接、词汇资源、语法多样性与准确性四项维度生成结构化辅助 Band；程序独立复算总分
 - 悬浮式 **IELTS Pilot 学习助手**：诊断、计划、对话三种视图，点击悬浮球后出现，不占用常驻侧边栏
+- 悬浮球在专项练习和完整模考专注模式中仍可使用；对话页明确显示已加载的当前材料
+- 用户主动发送问题时，助手临时读取当前阅读原文、整组题目、活动题、作答、本地答案与解析，或写作任务、草稿、报告与原文证据
+- 当前材料不写入对话历史；超长导入内容按字符上限截断并明确标记，后续历史只保留经过边界处理的证据摘要
 - 每条判断引用稳定的本地证据 ID，展示样本数和可信度；AI 输出必须通过结构与证据校验，否则回退为本地建议
 - 将建议解析为本地练习、错题筛选和写作报告链接；记录行动基线并在产生新练习后比较结果
 - 今天/本周计划保存在当前设备，支持完成、恢复和重新生成；写作趋势聚合最近五份报告，不发送作文原文
 - 对话支持停止、失败重试、重新生成、复制、删除、新建和切换历史；API Key 与疑似凭据不会进入对话存储
-- Web 与桌面端均支持真实流式输出和停止，安全 Markdown、上下文长度、Token 用量、模型与 `assistant-v2` 提示词版本可追溯
+- Web 与桌面端均支持真实流式输出和停止，安全 Markdown、上下文长度、Token 用量、模型与 `assistant-v3` 提示词版本可追溯
 - 练习入口自动标记开始，新成绩会自动完成对应计划并生成下一轮；周计划显示优先级、预计耗时、执行状态、前后正确率与每周总结
 - 助手读取有界写作摘要和四维趋势，支持报告证据深链、下一题推荐与只在本地构造的改写练习；辅助 Band 始终明确不等于官方成绩
 - AI 未配置或暂时离线时，本地诊断仍可使用；对话记录仅保存在当前设备，API Key 不进入浏览器存储或对话历史
@@ -72,7 +75,7 @@ npm run serve:production -- --config "你的 AI 配置文件路径" --port 4390
 
 ## Windows 桌面版
 
-不需要开发环境时，直接下载并运行 [IELTS Pilot v0.9.8 Windows x64 安装包](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.8/IELTS.Pilot_0.9.8_x64-setup.exe)。已安装旧版时无需卸载，直接覆盖安装即可保留本地数据；v0.9.2 及以上也可使用应用内签名更新。安装器按当前用户安装，不需要管理员权限。由于当前开源构建没有商业 Authenticode 证书，Windows SmartScreen 可能显示“未知发布者”。
+不需要开发环境时，直接下载并运行 [IELTS Pilot v0.9.9 Windows x64 安装包](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.9/IELTS.Pilot_0.9.9_x64-setup.exe)。已安装旧版时无需卸载，直接覆盖安装即可保留本地数据；v0.9.2 及以上也可使用应用内签名更新。安装器按当前用户安装，不需要管理员权限。由于当前开源构建没有商业 Authenticode 证书，Windows SmartScreen 可能显示“未知发布者”。
 
 开发模式还需要 Rust stable、Microsoft C++ Build Tools 和 Windows WebView2：
 
@@ -181,4 +184,4 @@ src-tauri/          # Tauri 2 Rust 壳、权限与 NSIS 配置
 
 ## 路线图边界
 
-v0.1 至 v0.9.8 完成情况见 [ROADMAP.md](docs/ROADMAP.md)。托管账号服务、商业 Authenticode 证书、听力、词汇 SRS、口语 AI 辅助反馈、官方评分和付费能力不在本里程碑内。
+v0.1 至 v0.9.9 完成情况见 [ROADMAP.md](docs/ROADMAP.md)。托管账号服务、商业 Authenticode 证书、听力、词汇 SRS、口语 AI 辅助反馈、官方评分和付费能力不在本里程碑内。

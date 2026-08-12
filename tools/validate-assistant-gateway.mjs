@@ -8,7 +8,7 @@ const response = await fetch(endpoint, {
       {
         role: 'system',
         content: [
-          'You are IELTS Pilot assistant. promptVersion=assistant-v2.',
+          'You are IELTS Pilot assistant. promptVersion=assistant-v3.',
           'Return JSON only with schemaVersion=1 and conclusion, facts, inferences, actions.',
           'Each judgment must use only evidence IDs from the catalog and include confidence.',
           'Do not claim official scores, stable performance or guaranteed improvement without sufficient evidence.',

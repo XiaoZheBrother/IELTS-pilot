@@ -38,6 +38,9 @@ const chartMaximum = computed(() => Math.max(...(selected.value.visualData?.seri
 
 function loadTask(task: WritingTask): void {
   selectedId.value = task.id
+  if (router && route && route.query.task !== task.id) {
+    void router.replace({ query: { ...route.query, task: task.id } })
+  }
   const draft = dependencies.repository.getDraft(task.id)
   essay.value = draft?.essay ?? ''
   elapsedSeconds.value = draft?.elapsedSeconds ?? 0

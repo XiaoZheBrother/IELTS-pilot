@@ -22,7 +22,11 @@ describe('App shell', () => {
     await router.push('/')
     await router.isReady()
     const assistantDependencies = {
-      practice: { listAttempts: () => [], listMasteredErrorKeys: () => [], listImportedSets: () => [] }, writing: { listReports: () => [] },
+      practice: {
+        listAttempts: () => [], listMasteredErrorKeys: () => [], listImportedSets: () => [],
+        getDraft: () => null, getAttempt: () => null,
+      },
+      writing: { listReports: () => [], getDraft: () => null, getReport: () => null },
       settings: { get: () => ({ endpoint: 'https://api.example.com/v1/chat/completions', model: 'fixture' }) },
       conversation: { list: () => [], save: () => undefined, clear: () => undefined, listConversations: () => [], activeConversationId: () => 'fixture', create: () => ({ id: 'fixture', title: '新对话', createdAt: '2026-08-12T00:00:00.000Z', updatedAt: '2026-08-12T00:00:00.000Z', messages: [] }), switchTo: () => true, remove: () => undefined, deleteMessage: () => undefined },
       plan: { get: () => null, save: () => undefined, clear: () => undefined },

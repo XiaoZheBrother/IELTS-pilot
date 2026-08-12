@@ -120,9 +120,29 @@ describe('AI writing production gateway', () => {
     expect(observedBody).toMatchObject({ stream: true, stream_options: { include_usage: true } })
   })
 
+  it('accepts bounded current-page material while rejecting oversized assistant messages', async () => {
+    const contextual = await fetch(`${baseUrl}/api/v1/assistant/chat`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [
+        { role: 'system', content: 'Use supplied facts only.' },
+        { role: 'user', content: JSON.stringify({ ActivePageContext: 'x'.repeat(13_000) }) },
+      ] }),
+    })
+    expect(contextual.status).toBe(200)
+
+    const oversized = await fetch(`${baseUrl}/api/v1/assistant/chat`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [
+        { role: 'system', content: 'Use supplied facts only.' },
+        { role: 'user', content: 'x'.repeat(24_001) },
+      ] }),
+    })
+    expect(oversized.status).toBe(400)
+  })
+
   it('validates methods and body size, then injects the upstream credential server-side', async () => {
     expect((await fetch(`${baseUrl}/api/v1/writing/evaluate`)).status).toBe(405)
-    const tooLarge = await fetch(`${baseUrl}/api/v1/writing/evaluate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ essay: 'x'.repeat(40_000) }) })
+    const tooLarge = await fetch(`${baseUrl}/api/v1/writing/evaluate`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ essay: 'x'.repeat(100_000) }) })
     expect(tooLarge.status).toBe(413)
 
     const payload = {

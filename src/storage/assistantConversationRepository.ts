@@ -1,5 +1,7 @@
-import { containsUnsupportedOutcomePrediction, type CoachAnswer } from '../domain/coachAnswer'
+import { containsUnsupportedOutcomePrediction, type CoachAnswer, type CoachEvidenceEntry } from '../domain/coachAnswer'
 import { containsSensitiveCredential } from '../domain/sensitiveText'
+import type { AssistantActionContext, AssistantPageContextKind } from '../domain/assistantPageContext'
+import { questionTypeLabels } from '../domain/questionLabels'
 
 const STORAGE_KEY = 'ielts-pilot:assistant:v2'
 const LEGACY_STORAGE_KEY = 'ielts-pilot:assistant:v1'
@@ -13,6 +15,8 @@ export interface AssistantStoredMessage {
   content: string
   createdAt: string
   answer?: CoachAnswer
+  evidence?: CoachEvidenceEntry[]
+  actionContext?: AssistantActionContext
   promptVersion?: string
   model?: string
   requestId?: string
@@ -70,6 +74,33 @@ function validAnswer(value: unknown): value is CoachAnswer {
       && !Object.keys(action).some((key) => key.toLowerCase().includes('url')))
 }
 
+function normalizeEvidence(value: unknown): CoachEvidenceEntry[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const entries = value.slice(0, 24).flatMap((entry): CoachEvidenceEntry[] => {
+    if (!isRecord(entry) || typeof entry.id !== 'string' || typeof entry.label !== 'string' || typeof entry.value !== 'string'
+      || !Number.isInteger(entry.sampleSize) || Number(entry.sampleSize) < 0
+      || !['high', 'medium', 'insufficient'].includes(String(entry.confidence))) return []
+    const id = entry.id.trim().slice(0, 180)
+    const label = entry.label.trim().slice(0, 120)
+    const text = entry.value.trim().slice(0, 600)
+    if (!id || !label || !text || containsSensitiveCredential(`${label} ${text}`)) return []
+    return [{ id, label, value: text, sampleSize: Number(entry.sampleSize), confidence: entry.confidence as CoachEvidenceEntry['confidence'] }]
+  })
+  return entries.length ? entries : undefined
+}
+
+function normalizeActionContext(value: unknown): AssistantActionContext | undefined {
+  if (!isRecord(value) || !['reading-practice', 'reading-mock', 'reading-result', 'writing-draft', 'writing-report'].includes(String(value.kind))) return undefined
+  const targetId = typeof value.targetId === 'string' ? value.targetId.trim().slice(0, 180) : ''
+  const questionType = typeof value.questionType === 'string' && Object.hasOwn(questionTypeLabels, value.questionType)
+    ? value.questionType as keyof typeof questionTypeLabels : undefined
+  return {
+    kind: value.kind as AssistantPageContextKind,
+    ...(targetId ? { targetId } : {}),
+    ...(questionType ? { questionType } : {}),
+  }
+}
+
 function normalizeMessage(value: unknown): AssistantStoredMessage | null {
   if (!isRecord(value) || typeof value.id !== 'string'
     || (value.role !== 'user' && value.role !== 'assistant')
@@ -89,10 +120,14 @@ function normalizeMessage(value: unknown): AssistantStoredMessage | null {
       : undefined
   const boundedMetadata = (entry: unknown, maximum: number): string | undefined => typeof entry === 'string' && entry.trim().length <= maximum
     ? entry.trim() || undefined : undefined
+  const evidence = value.role === 'assistant' ? normalizeEvidence(value.evidence) : undefined
+  const actionContext = value.role === 'assistant' ? normalizeActionContext(value.actionContext) : undefined
   return {
     id: value.id.trim().slice(0, 180), role: value.role, content,
     createdAt: new Date(value.createdAt).toISOString(),
     ...(value.role === 'assistant' && validAnswer(value.answer) ? { answer: clone(value.answer) } : {}),
+    ...(evidence ? { evidence } : {}),
+    ...(actionContext ? { actionContext } : {}),
     ...(value.role === 'assistant' && boundedMetadata(value.promptVersion, 80) ? { promptVersion: boundedMetadata(value.promptVersion, 80) } : {}),
     ...(value.role === 'assistant' && boundedMetadata(value.model, 180) ? { model: boundedMetadata(value.model, 180) } : {}),
     ...(value.role === 'assistant' && boundedMetadata(value.requestId, 180) ? { requestId: boundedMetadata(value.requestId, 180) } : {}),

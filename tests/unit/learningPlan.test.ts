@@ -40,6 +40,23 @@ describe('learning actions and plans', () => {
     expect(actions[1]!.to).toBe('/errors?type=multiple-choice&state=learning')
   })
 
+  it('keeps contextual reading actions on the active set and question type', () => {
+    const contextualAnswer: CoachAnswer = {
+      ...answer,
+      actions: [
+        { id: 'current-errors', title: '复盘当前题型', reason: '巩固当前解释', kind: 'errors' },
+        { id: 'current-practice', title: '继续当前练习', reason: '完成本篇', kind: 'practice' },
+        { id: 'duplicate-errors', title: '另一个错题动作', reason: '不重复展示', kind: 'errors' },
+      ],
+    }
+    const actions = resolveCoachActions(contextualAnswer, snapshot, practiceSets, [], {
+      kind: 'reading-practice', targetId: 'shade-networks', questionType: 'short-answer',
+    })
+    expect(actions).toHaveLength(2)
+    expect(actions.find(({ kind }) => kind === 'practice')?.to).toBe('/practice/shade-networks')
+    expect(actions.find(({ kind }) => kind === 'errors')?.to).toBe('/errors?type=short-answer&state=learning')
+  })
+
   it('deep-links report evidence and resolves a concrete next writing task', () => {
     const report: WritingAssessmentReport = {
       id: 'report-1', taskId: 'academic-task-2-library-balance', taskType: 'task-2', essay: 'Evidence sentence.', wordCount: 2,

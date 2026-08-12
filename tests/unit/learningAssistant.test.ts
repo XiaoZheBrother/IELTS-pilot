@@ -4,6 +4,8 @@ import LearningAssistant from '../../src/components/LearningAssistant.vue'
 import { LEARNING_ASSISTANT_KEY, type LearningAssistantDependencies } from '../../src/components/learningAssistantDependencies'
 import type { Attempt } from '../../src/domain/models'
 import type { WritingAssessmentReport } from '../../src/domain/writingAssessment'
+import { practiceSets } from '../../src/data/practiceSets'
+import { writingTasks } from '../../src/data/writingTasks'
 
 const attempt: Attempt = {
   id: 'demo-attempt', testId: 'set-1', mode: 'practice', answers: { q1: ['B'], q2: ['A'], q3: ['B'], q4: ['A'], q5: ['B'] },
@@ -25,8 +27,10 @@ function dependencies(overrides: Partial<LearningAssistantDependencies> = {}): L
       listAttempts: () => [attempt],
       listMasteredErrorKeys: () => [],
       listImportedSets: () => [],
+      getDraft: () => null,
+      getAttempt: () => null,
     },
-    writing: { listReports: () => [] },
+    writing: { listReports: () => [], getDraft: () => null, getReport: () => null },
     settings: { get: () => ({ endpoint: 'https://api.example.com/v1/chat/completions', model: 'coach-model' }) },
     conversation: {
       list: () => messages,
@@ -67,12 +71,15 @@ function dependencies(overrides: Partial<LearningAssistantDependencies> = {}): L
   }
 }
 
-async function mountAssistant(deps = dependencies()) {
+async function mountAssistant(deps = dependencies(), path = '/') {
   const router = createRouter({ history: createMemoryHistory(), routes: [
     { path: '/', component: { template: '<main />' } },
     { path: '/settings', component: { template: '<main />' } },
+    { path: '/practice/:testId', name: 'practice', component: { template: '<main />' } },
+    { path: '/writing', name: 'writing', component: { template: '<main />' } },
+    { path: '/writing/report/:reportId', name: 'writing-report', component: { template: '<main />' } },
   ] })
-  await router.push('/')
+  await router.push(path)
   await router.isReady()
   return mount(LearningAssistant, { global: { plugins: [router], provide: { [LEARNING_ASSISTANT_KEY as symbol]: deps }, stubs: { RouterLink } } })
 }
@@ -128,7 +135,10 @@ describe('LearningAssistant', () => {
 
   it('refreshes the local snapshot each time it opens', async () => {
     let attempts: Attempt[] = []
-    const deps = dependencies({ practice: { listAttempts: () => attempts, listMasteredErrorKeys: () => [], listImportedSets: () => [] } })
+    const deps = dependencies({ practice: {
+      listAttempts: () => attempts, listMasteredErrorKeys: () => [], listImportedSets: () => [],
+      getDraft: () => null, getAttempt: () => null,
+    } })
     const wrapper = await mountAssistant(deps)
     await wrapper.get('[data-testid="assistant-orb"]').trigger('click')
     expect(wrapper.text()).toContain('还没有足够的练习记录')
@@ -142,13 +152,78 @@ describe('LearningAssistant', () => {
   it('rejects credential-like input without persisting or sending it', async () => {
     const deps = dependencies()
     let chatCalls = 0
-    deps.client.chat = async () => { chatCalls += 1; return { content: '', model: '', requestId: '' } }
+    deps.client.chatStream = async () => { chatCalls += 1; return { content: '', model: '', requestId: '' } }
     const wrapper = await mountAssistant(deps)
     await openChat(wrapper)
     await wrapper.get('[aria-label="给 IELTS Pilot 发消息"]').setValue('请使用 sk-proj-abcdefghijklmnopqrstuvwxyz123456')
     await wrapper.get('.assistant-composer').trigger('submit')
 
     expect(wrapper.text()).toContain('疑似敏感凭据')
+    expect(deps.conversation.list()).toHaveLength(0)
+    expect(chatCalls).toBe(0)
+  })
+
+  it('rejects a credential embedded in imported reading material before persistence or egress', async () => {
+    const source = practiceSets[0]!
+    const sensitiveSet = {
+      ...source, id: 'sensitive-import', title: 'Sensitive import', passage: {
+        ...source.passage,
+        sections: source.passage.sections.map((section, index) => index === 0
+          ? { ...section, paragraphs: ['sk-proj-abcdefghijklmnopqrstuvwxyz123456', ...section.paragraphs.slice(1)] }
+          : section),
+      },
+    }
+    let chatCalls = 0
+    const deps = dependencies({ practice: {
+      listAttempts: () => [], listMasteredErrorKeys: () => [], listImportedSets: () => [sensitiveSet],
+      getDraft: () => null, getAttempt: () => null,
+    } })
+    deps.client.chatStream = async () => { chatCalls += 1; return { content: '', model: '', requestId: '' } }
+    const wrapper = await mountAssistant(deps, '/practice/sensitive-import')
+    await openChat(wrapper)
+    await wrapper.get('[data-testid="assistant-page-context"] button').trigger('click')
+
+    expect(wrapper.text()).toContain('当前材料或学习数据含疑似敏感凭据')
+    expect(deps.conversation.list()).toHaveLength(0)
+    expect(chatCalls).toBe(0)
+  })
+
+  it('rejects a credential embedded in a writing draft before persistence or egress', async () => {
+    const task = writingTasks[0]!
+    let chatCalls = 0
+    const deps = dependencies({ writing: {
+      listReports: () => [], getReport: () => null,
+      getDraft: () => ({ taskId: task.id, essay: 'Draft token: sk-proj-abcdefghijklmnopqrstuvwxyz123456', elapsedSeconds: 30, updatedAt: '2026-08-12T02:00:00.000Z' }),
+    } })
+    deps.client.chatStream = async () => { chatCalls += 1; return { content: '', model: '', requestId: '' } }
+    const wrapper = await mountAssistant(deps, `/writing?task=${task.id}`)
+    await openChat(wrapper)
+    await wrapper.get('[data-testid="assistant-page-context"] button').trigger('click')
+
+    expect(wrapper.text()).toContain('当前材料或学习数据含疑似敏感凭据')
+    expect(deps.conversation.list()).toHaveLength(0)
+    expect(chatCalls).toBe(0)
+  })
+
+  it('rejects a credential embedded in a writing report before persistence or egress', async () => {
+    const report: WritingAssessmentReport = {
+      id: 'sensitive-report', taskId: writingTasks[0]!.id, taskType: writingTasks[0]!.type,
+      essay: 'Report manuscript sk-proj-abcdefghijklmnopqrstuvwxyz123456', wordCount: 4, overallBand: 6,
+      summary: 'Fixture summary.', criteria: [
+        { criterion: 'task-response', band: 6, rationale: 'Fixture.' },
+        { criterion: 'coherence-cohesion', band: 6, rationale: 'Fixture.' },
+        { criterion: 'lexical-resource', band: 6, rationale: 'Fixture.' },
+        { criterion: 'grammatical-range-accuracy', band: 6, rationale: 'Fixture.' },
+      ], strengths: [], priorities: [], evidence: [], model: 'fixture', promptVersion: 'writing-v1', generatedAt: '2026-08-12T02:00:00.000Z',
+    }
+    let chatCalls = 0
+    const deps = dependencies({ writing: { listReports: () => [report], getDraft: () => null, getReport: () => report } })
+    deps.client.chatStream = async () => { chatCalls += 1; return { content: '', model: '', requestId: '' } }
+    const wrapper = await mountAssistant(deps, `/writing/report/${report.id}`)
+    await openChat(wrapper)
+    await wrapper.get('[data-testid="assistant-page-context"] button').trigger('click')
+
+    expect(wrapper.text()).toContain('当前材料或学习数据含疑似敏感凭据')
     expect(deps.conversation.list()).toHaveLength(0)
     expect(chatCalls).toBe(0)
   })
@@ -198,7 +273,7 @@ describe('LearningAssistant', () => {
 
     finish()
     await new Promise((resolve) => setTimeout(resolve, 0))
-    expect(wrapper.text()).toContain('assistant-v2')
+    expect(wrapper.text()).toContain('assistant-v3')
     expect(wrapper.text()).toContain('100 tokens')
     expect(wrapper.text()).toContain('上下文 2/6 条')
   })
@@ -215,11 +290,48 @@ describe('LearningAssistant', () => {
       evidence: [{ criterion: 'task-response', quote: 'Libraries support learners.', observation: 'The claim lacks a concrete example.', revision: 'Libraries support learners by offering quiet study space.' }],
       model: 'fixture', promptVersion: 'writing-v1', generatedAt: '2026-08-12T08:00:00.000Z',
     }
-    const wrapper = await mountAssistant(dependencies({ writing: { listReports: () => [report] } }))
+    const wrapper = await mountAssistant(dependencies({ writing: { listReports: () => [report], getDraft: () => null, getReport: () => null } }))
     await wrapper.get('[data-testid="assistant-orb"]').trigger('click')
     expect(wrapper.text()).toContain('立场清晰，但例证展开不足')
     expect(wrapper.text()).toContain('下一篇')
     expect(wrapper.text()).toContain('改写练习')
     expect(wrapper.get('[data-testid="writing-evidence-link"]').attributes('href')).toBe('/writing/report/report-1#evidence-1')
+  })
+
+  it('injects the active reading material only when the learner sends a question', async () => {
+    const set = practiceSets[0]!
+    let requestContent = ''
+    const deps = dependencies({
+      practice: {
+        listAttempts: () => [], listMasteredErrorKeys: () => [], listImportedSets: () => [], getAttempt: () => null,
+        getDraft: () => ({
+          testId: set.id, answers: { [set.questions[0]!.id]: ['FALSE'] }, currentIndex: 0,
+          remainingSeconds: 1_200, updatedAt: '2026-08-12T02:00:00.000Z',
+        }),
+      },
+    })
+    deps.client.chatStream = async (request, _settings, options) => {
+      requestContent = request.messages.at(-1)?.content ?? ''
+      const content = JSON.stringify({
+        schemaVersion: 1,
+        conclusion: { text: '原文定位句直接支持标准答案。', confidence: 'high', evidenceIds: ['context.reading.answer_key'] },
+        facts: [{ text: '当前答案与标准答案不一致。', evidenceIds: ['context.reading.user_answer', 'context.reading.answer_key'] }],
+        inferences: [], actions: [],
+      })
+      options.onDelta(content)
+      return { content, model: 'coach-model', requestId: 'context-1' }
+    }
+
+    const wrapper = await mountAssistant(deps, `/practice/${set.id}`)
+    await openChat(wrapper)
+    expect(wrapper.get('[data-testid="assistant-page-context"]').text()).toContain(set.title)
+    expect(requestContent).toBe('')
+
+    await wrapper.get('[data-testid="assistant-page-context"] button').trigger('click')
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    expect(requestContent).toContain('ActivePageContext')
+    expect(requestContent).toContain(set.passage.title)
+    expect(requestContent).toContain(set.questions[0]!.explanation)
+    expect(deps.conversation.list()[1]?.evidence?.some(({ id }) => id === 'context.reading.answer_key')).toBe(true)
   })
 })
