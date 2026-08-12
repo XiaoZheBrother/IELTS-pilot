@@ -54,4 +54,17 @@ describe('desktop packaging configuration', () => {
     expect(workflow).toContain('updaterJsonPreferNsis: true')
     expect(workflow).toContain('src-tauri/tauri.release.conf.json')
   })
+
+  it('routes desktop writing assessment through a rustls HTTPS command without embedded credentials', () => {
+    const cargo = readFileSync(resolve('src-tauri/Cargo.toml'), 'utf8')
+    const rust = readFileSync(resolve('src-tauri/src/lib.rs'), 'utf8')
+    const adapter = readFileSync(resolve('src-tauri/src/ai_writing.rs'), 'utf8')
+    expect(cargo).toMatch(/reqwest\s*=.*rustls-tls/)
+    expect(rust).toContain('mod ai_writing')
+    expect(rust).toContain('ai_writing::evaluate_writing')
+    expect(adapter).toContain('#[tauri::command]')
+    expect(adapter).toContain('https')
+    expect(`${cargo}\n${rust}\n${adapter}`).not.toMatch(/ark-[a-z0-9]{20,}/i)
+    expect(`${cargo}\n${rust}\n${adapter}`).not.toContain('D:\\Users\\yuqi.chen')
+  })
 })

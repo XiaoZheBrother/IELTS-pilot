@@ -34,7 +34,7 @@ describe('writing assessment client', () => {
     await expect(client.checkAvailability()).resolves.toMatchObject({ available: false, reason: 'configuration-required' })
     await client.evaluate(request, { endpoint: 'https://example.com/chat/completions', apiKey: 'temporary-secret', model: 'desktop-model' })
     expect(invoked[0]?.[0]).toBe('evaluate_writing')
-    expect(invoked[0]?.[1]).toMatchObject({ apiKey: 'temporary-secret', model: 'desktop-model' })
+    expect(invoked[0]?.[1]).toMatchObject({ payload: { apiKey: 'temporary-secret', model: 'desktop-model' } })
   })
 
   it('maps gateway error codes to typed recoverable failures', async () => {

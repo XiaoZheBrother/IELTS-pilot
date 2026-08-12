@@ -82,7 +82,7 @@ export function createWritingAssessmentClient(options: { fetcher?: typeof fetch;
       try {
         if (desktop) {
           if (!config?.endpoint || !config.apiKey || !config.model) throw new WritingAssessmentClientError('CONFIGURATION_REQUIRED', '桌面端需要提供一次性 AI 连接配置。')
-          return modelResponse(await invoke('evaluate_writing', { ...request, ...config }))
+          return modelResponse(await invoke('evaluate_writing', { payload: { ...request, ...config } }))
         }
         const response = await fetcher('/api/v1/writing/evaluate', {
           method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(request),
