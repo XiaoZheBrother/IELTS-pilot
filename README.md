@@ -60,7 +60,7 @@ npm run serve:production -- --config "你的 AI 配置文件路径" --port 4390
 
 ## Windows 桌面版
 
-不需要开发环境时，直接下载并运行 [IELTS Pilot v0.9.2 Windows x64 安装包](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.2/IELTS.Pilot_0.9.2_x64-setup.exe)。安装器按当前用户安装，不需要管理员权限。由于当前开源构建没有商业 Authenticode 证书，Windows SmartScreen 可能显示“未知发布者”。
+不需要开发环境时，直接下载并运行 [IELTS Pilot v0.9.2 Windows x64 安装包](https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.2/IELTS.Pilot_0.9.2_x64-setup.exe)。如果已安装 v0.9.0 或 v0.9.1，请不要卸载，直接运行 v0.9.2 安装包覆盖安装一次；从 v0.9.2 开始即可使用应用内签名更新。安装器按当前用户安装，不需要管理员权限。由于当前开源构建没有商业 Authenticode 证书，Windows SmartScreen 可能显示“未知发布者”。
 
 开发模式还需要 Rust stable、Microsoft C++ Build Tools 和 Windows WebView2：
 
