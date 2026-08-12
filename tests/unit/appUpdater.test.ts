@@ -1,6 +1,15 @@
-import { createAppUpdater, type UpdaterBindings } from '../../src/platform/appUpdater'
+import { buildUpdaterCheckOptions, createAppUpdater, type UpdaterBindings } from '../../src/platform/appUpdater'
 
 describe('app updater adapter', () => {
+  it('passes a safe Windows system proxy to the native updater', () => {
+    expect(buildUpdaterCheckOptions('http://127.0.0.1:7897')).toEqual({
+      timeout: 30_000,
+      proxy: 'http://127.0.0.1:7897/',
+    })
+    expect(buildUpdaterCheckOptions(null)).toEqual({ timeout: 30_000 })
+    expect(buildUpdaterCheckOptions('https://secret@proxy.example.com')).toEqual({ timeout: 30_000 })
+  })
+
   it('keeps browser builds on an explicit unsupported path', async () => {
     const updater = createAppUpdater(false)
 

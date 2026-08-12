@@ -42,6 +42,25 @@ export interface AppUpdater {
 
 export const APP_UPDATER_KEY: InjectionKey<AppUpdater> = Symbol('ielts-pilot-app-updater')
 
+interface UpdaterCheckOptions {
+  timeout: number
+  proxy?: string
+}
+
+export function buildUpdaterCheckOptions(systemProxy: string | null): UpdaterCheckOptions {
+  const options: UpdaterCheckOptions = { timeout: 30_000 }
+  if (!systemProxy) return options
+  try {
+    const url = new URL(systemProxy)
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return options
+    if (url.pathname !== '/' || url.search || url.hash) return options
+    options.proxy = url.toString()
+  } catch {
+    // Native proxy discovery is best-effort; direct access remains available.
+  }
+  return options
+}
+
 function updaterErrorDetail(error: unknown): string {
   const detail = error instanceof Error ? error.message : String(error)
   return detail.trim().replace(/\s+/g, ' ').slice(0, 180) || '未知错误'
@@ -99,11 +118,20 @@ export function createAppUpdater(desktop: boolean, bindings?: UpdaterBindings): 
 }
 
 async function loadTauriBindings(): Promise<UpdaterBindings> {
-  const [{ check }, { relaunch }] = await Promise.all([
+  const [{ check }, { relaunch }, { invoke }] = await Promise.all([
     import('@tauri-apps/plugin-updater'),
     import('@tauri-apps/plugin-process'),
+    import('@tauri-apps/api/core'),
   ])
-  return { check, relaunch }
+  return {
+    async check() {
+      let proxy: string | null = null
+      try { proxy = await invoke<string | null>('get_system_proxy') }
+      catch { /* direct updater access is still worth trying */ }
+      return check(buildUpdaterCheckOptions(proxy))
+    },
+    relaunch,
+  }
 }
 
 export function createRuntimeAppUpdater(

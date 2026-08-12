@@ -1,6 +1,7 @@
 mod ai_assistant;
 mod ai_credentials;
 mod ai_writing;
+mod system_proxy;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -17,6 +18,7 @@ pub fn run() {
             ai_credentials::get_ai_settings_status,
             ai_credentials::save_ai_credential,
             ai_credentials::clear_ai_credential,
+            system_proxy::get_system_proxy,
         ])
         .run(tauri::generate_context!())
         .expect("error while running IELTS Pilot");
