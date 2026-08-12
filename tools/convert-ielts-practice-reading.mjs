@@ -1,4 +1,8 @@
-import { readFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
+import { constants as fsConstants } from 'node:fs'
+import { access, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
+import { dirname, join, parse, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import vm from 'node:vm'
 import { JSDOM } from 'jsdom'
 
@@ -378,3 +382,161 @@ export function buildContentPackage(sets, options) {
     sets,
   }
 }
+
+function parseArguments(argv) {
+  const values = {}
+  for (let index = 0; index < argv.length; index += 1) {
+    const current = argv[index]
+    if (!current.startsWith('--')) throw new Error(`Unexpected argument: ${current}`)
+    const value = argv[index + 1]
+    if (!value || value.startsWith('--')) throw new Error(`Missing value for ${current}.`)
+    values[current.slice(2)] = value
+    index += 1
+  }
+  const packageSize = Number(values['package-size'] ?? 25)
+  if (!Number.isInteger(packageSize) || packageSize < 1 || packageSize > 100) throw new Error('--package-size must be an integer from 1 to 100.')
+  const timestamp = values.timestamp ?? new Date().toISOString()
+  if (Number.isNaN(Date.parse(timestamp))) throw new Error('--timestamp must be an ISO date.')
+  return {
+    source: resolve(values.source ?? join(process.cwd(), '..', 'IELTS-practice')),
+    output: resolve(values.output ?? join(process.cwd(), 'artifacts', 'import', 'ielts-practice-reading')),
+    packageSize,
+    timestamp,
+  }
+}
+
+async function exists(path) {
+  try { await access(path, fsConstants.F_OK); return true } catch { return false }
+}
+
+function sha256(bytes) {
+  return createHash('sha256').update(bytes).digest('hex')
+}
+
+function addStats(target, source) {
+  for (const key of ['dedicatedExplanations', 'fallbackExplanations', 'exactLocations', 'inferredLocations', 'fallbackLocations', 'downgradedOptionQuestions']) {
+    target[key] += source[key]
+  }
+  for (const [type, count] of Object.entries(source.questionTypes)) target.questionTypes[type] = (target.questionTypes[type] ?? 0) + count
+  target.warnings.push(...source.warnings)
+}
+
+async function replaceGeneratedDirectory(staging, output) {
+  const root = parse(output).root
+  if (output === root || output === resolve(process.cwd())) throw new Error('Refusing to replace a broad output directory.')
+  if (await exists(output)) {
+    const entries = await readdir(output)
+    if (entries.length && !entries.includes('conversion-report.json')) throw new Error(`Output directory is not empty and was not created by this converter: ${output}`)
+    await rm(output, { recursive: true, force: true })
+  }
+  await mkdir(dirname(output), { recursive: true })
+  await rename(staging, output)
+}
+
+export async function runConversion(options) {
+  const source = resolve(options.source)
+  const output = resolve(options.output)
+  const packageSize = options.packageSize ?? 25
+  const timestamp = options.timestamp ?? new Date().toISOString()
+  if (source === output || output.startsWith(`${source}\\`) || output.startsWith(`${source}/`)) throw new Error('Output directory must not be inside the source project.')
+  const examDirectory = join(source, 'assets', 'generated', 'reading-exams')
+  const explanationDirectory = join(source, 'assets', 'generated', 'reading-explanations')
+  const examFiles = (await readdir(examDirectory)).filter((name) => /^p.+\.js$/i.test(name)).sort((a, b) => a.localeCompare(b, 'en', { numeric: true }))
+  if (!examFiles.length) throw new Error(`No generated reading exam files were found in ${examDirectory}.`)
+  const explanationFiles = await exists(explanationDirectory)
+    ? new Set((await readdir(explanationDirectory)).filter((name) => /^p.+\.js$/i.test(name)))
+    : new Set()
+  const setsByCategory = new Map()
+  const totals = {
+    dedicatedExplanations: 0, fallbackExplanations: 0,
+    exactLocations: 0, inferredLocations: 0, fallbackLocations: 0,
+    downgradedOptionQuestions: 0,
+    questionTypes: {}, warnings: [],
+  }
+  let sourceQuestions = 0
+
+  for (const file of examFiles) {
+    const { data: exam } = await loadRegisteredPayload(join(examDirectory, file), '__READING_EXAM_DATA__')
+    sourceQuestions += Object.keys(asObject(exam.answerKey)).length
+    let explanations = new Map()
+    if (explanationFiles.has(file)) {
+      const { data } = await loadRegisteredPayload(join(explanationDirectory, file), '__READING_EXPLANATION_DATA__')
+      explanations = buildExplanationIndex(data)
+    }
+    const converted = convertExam(exam, explanations, file)
+    addStats(totals, converted.stats)
+    const category = converted.set.sequence.toLowerCase()
+    if (!setsByCategory.has(category)) setsByCategory.set(category, [])
+    setsByCategory.get(category).push(converted.set)
+  }
+
+  const staging = `${output}.tmp-${process.pid}-${Date.now()}`
+  await mkdir(staging, { recursive: true })
+  const packages = []
+  try {
+    for (const category of [...setsByCategory.keys()].sort()) {
+      const sets = setsByCategory.get(category).sort((left, right) => left.id.localeCompare(right.id, 'en', { numeric: true }))
+      for (let index = 0; index < sets.length; index += packageSize) {
+        const sequence = String(Math.floor(index / packageSize) + 1).padStart(3, '0')
+        const file = `private-atlas-${category}-${sequence}.json`
+        const content = buildContentPackage(sets.slice(index, index + packageSize), {
+          packageId: `private-atlas-${category}-${sequence}`,
+          name: `Private Atlas ${category.toUpperCase()} ${sequence}`,
+          category: category.toUpperCase(),
+          sourceUrl: SOURCE_URL,
+          timestamp,
+        })
+        const bytes = Buffer.from(`${JSON.stringify(content, null, 2)}\n`, 'utf8')
+        await writeFile(join(staging, file), bytes)
+        packages.push({
+          file,
+          category: category.toUpperCase(),
+          sets: content.sets.length,
+          questions: content.sets.reduce((sum, set) => sum + set.questions.length, 0),
+          bytes: bytes.length,
+          sha256: sha256(bytes),
+        })
+      }
+    }
+    const convertedSets = packages.reduce((sum, item) => sum + item.sets, 0)
+    const convertedQuestions = packages.reduce((sum, item) => sum + item.questions, 0)
+    const report = {
+      schemaVersion: 1,
+      generatedAt: timestamp,
+      sourceProject: SOURCE_URL,
+      sourceSets: examFiles.length,
+      sourceQuestions,
+      convertedSets,
+      convertedQuestions,
+      ...totals,
+      packages,
+      rightsNotice: PERSONAL_USE_NOTE,
+    }
+    if (convertedSets !== examFiles.length || convertedQuestions !== sourceQuestions) throw new Error('Conversion totals do not match the source registry totals.')
+    await writeFile(join(staging, 'conversion-report.json'), `${JSON.stringify(report, null, 2)}\n`, 'utf8')
+    await writeFile(join(staging, 'SHA256SUMS.txt'), `${packages.map((item) => `${item.sha256}  ${item.file}`).join('\n')}\n`, 'utf8')
+    await replaceGeneratedDirectory(staging, output)
+    return report
+  } catch (error) {
+    await rm(staging, { recursive: true, force: true })
+    throw error
+  }
+}
+
+async function main() {
+  const options = parseArguments(process.argv.slice(2))
+  const report = await runConversion(options)
+  process.stdout.write(`${JSON.stringify({
+    output: options.output,
+    packages: report.packages.length,
+    sets: report.convertedSets,
+    questions: report.convertedQuestions,
+    warnings: report.warnings.length,
+  })}\n`)
+}
+
+const invokedPath = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href : ''
+if (invokedPath === import.meta.url) main().catch((error) => {
+  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`)
+  process.exitCode = 1
+})

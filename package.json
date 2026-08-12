@@ -21,6 +21,8 @@
     "publisher:keys": "node tools/publisher-keys.mjs",
     "publisher:sign": "node tools/sign-catalog.mjs",
     "publisher:verify": "node tools/verify-catalog.mjs",
+    "content:convert:legacy": "node tools/convert-ielts-practice-reading.mjs",
+    "content:validate": "vite-node tools/validate-content-packages.ts",
     "tauri": "tauri"
   },
   "dependencies": {
