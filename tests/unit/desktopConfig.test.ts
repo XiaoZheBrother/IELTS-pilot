@@ -10,7 +10,7 @@ describe('desktop packaging configuration', () => {
       bundle: { targets: string[]; createUpdaterArtifacts?: boolean }
       plugins?: { updater?: { pubkey?: string; endpoints?: string[]; windows?: { installMode?: string } } }
     }
-    expect(pkg.version).toBe('0.9.1')
+    expect(pkg.version).toBe('0.9.2')
     expect(config.version).toBe(pkg.version)
     expect(config.bundle.targets).toContain('nsis')
     expect(config.build.frontendDist).toBe('../dist')
@@ -28,6 +28,7 @@ describe('desktop packaging configuration', () => {
       bundle: { createUpdaterArtifacts?: boolean }
       plugins: { updater: { pubkey: string; endpoints: string[]; windows: { installMode: string } } }
     }
+    const updaterPublicKey = readFileSync(resolve('src-tauri/updater.pub'), 'utf8').trim()
     const release = JSON.parse(readFileSync(resolve('src-tauri/tauri.release.conf.json'), 'utf8')) as { bundle: { createUpdaterArtifacts: boolean } }
 
     expect(cargo).toContain('tauri-plugin-updater')
@@ -38,6 +39,7 @@ describe('desktop packaging configuration', () => {
     expect(capabilities.permissions).toContain('process:allow-restart')
     expect(base.bundle.createUpdaterArtifacts).toBe(false)
     expect(base.plugins.updater.pubkey).toMatch(/^[A-Za-z0-9+/=]{100,}$/)
+    expect(base.plugins.updater.pubkey).toBe(updaterPublicKey)
     expect(base.plugins.updater.endpoints).toEqual(['https://github.com/XiaoZheBrother/IELTS-pilot/releases/latest/download/latest.json'])
     expect(base.plugins.updater.windows.installMode).toBe('passive')
     expect(release.bundle.createUpdaterArtifacts).toBe(true)
@@ -56,7 +58,7 @@ describe('desktop packaging configuration', () => {
     expect(workflow).toContain('releaseDraft: false')
     expect(workflow).toContain('releaseAssetNamePattern: IELTS-Pilot-[version]-Windows-[arch]-Setup.[ext]')
     expect(workflow).toContain('src-tauri/tauri.release.conf.json')
-    expect(readme).toContain('https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.1/IELTS.Pilot_0.9.1_x64-setup.exe')
+    expect(readme).toContain('https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.2/IELTS.Pilot_0.9.2_x64-setup.exe')
   })
 
   it('routes desktop writing assessment through a rustls HTTPS command without embedded credentials', () => {

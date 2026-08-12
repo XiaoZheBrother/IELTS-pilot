@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "IELTS Pilot",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "identifier": "com.xiaozhebrother.ieltspilot",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -43,7 +43,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNGRTkwNTk1Rjc4RTlFMgpSV1RpNlhoZFdWRCtBNTVITnpUQXZvTXdBYTVKb0VieldGMUVtaDVLUFVVbDI3WmtvcXhKVE00Qwo=",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNGRTkwNTk1Rjc4RTlFMgpSV1RpNlhoZldaRCtBNTVITnpUQXZvTXdBYTVKb0VieldGMUVtaDVLUFVVbDI3WmtvcXhKVE00Qwo=",
       "endpoints": [
         "https://github.com/XiaoZheBrother/IELTS-pilot/releases/latest/download/latest.json"
       ],
