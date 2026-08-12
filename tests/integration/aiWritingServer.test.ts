@@ -69,6 +69,7 @@ describe('AI writing production gateway', () => {
     expect(health.status).toBe(200)
     expect(await health.json()).toMatchObject({ available: true, mode: 'gateway', model: 'fixture-model' })
     expect(await (await fetch(`${baseUrl}/writing`)).text()).toContain('IELTS Pilot Production')
+    expect(await (await fetch(`${baseUrl}/examples/signed-catalog/catalog.json`)).json()).toMatchObject({ schemaVersion: 1 })
     expect(output()).not.toContain('integration-secret-value')
   })
 

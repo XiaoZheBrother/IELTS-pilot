@@ -1,5 +1,6 @@
 import type { NormalizedContentPackage } from './contentPackage'
 import type { InstalledContentPackage } from './models'
+import { APP_VERSION } from '../platform/runtime'
 
 export interface PackagePreview {
   packageId: string
@@ -53,7 +54,7 @@ function conflictsFor(incoming: NormalizedContentPackage, installed: InstalledCo
   return incoming.sets.map(({ id }) => id).filter((id) => occupied.has(id))
 }
 
-export async function createPackagePreview(incoming: NormalizedContentPackage, installed: InstalledContentPackage[], bundledSetIds: string[], appVersion = '0.8.0'): Promise<PackagePreview> {
+export async function createPackagePreview(incoming: NormalizedContentPackage, installed: InstalledContentPackage[], bundledSetIds: string[], appVersion = APP_VERSION): Promise<PackagePreview> {
   const current = installed.find(({ packageId }) => packageId === incoming.packageId)
   const conflicts = conflictsFor(incoming, installed, bundledSetIds)
   const newer = current ? compareVersions(incoming.version, current.version) > 0 : true

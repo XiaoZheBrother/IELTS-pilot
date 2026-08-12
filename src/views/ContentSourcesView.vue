@@ -7,6 +7,7 @@ import { practiceSets } from '../data/practiceSets'
 import { createPackagePreview, installPackage, type PackageInstallProvenance, type PackagePreview as PackagePreviewModel } from '../domain/packageLifecycle'
 import type { NormalizedContentPackage } from '../domain/contentPackage'
 import { createContentSourceClient } from '../platform/contentSourceClient'
+import { APP_VERSION } from '../platform/runtime'
 import { createBrowserContentSourceRepository, type StoredContentSource } from '../storage/contentSourceRepository'
 import { createBrowserPracticeRepository } from '../storage/practiceRepository'
 import { CONTENT_SOURCES_KEY, type ContentSourcesDependencies } from './contentSourcesDependencies'
@@ -100,7 +101,7 @@ async function downloadPackage(source: StoredContentSource, packageId: string): 
     reload()
     if (updated.status !== 'trusted' || !updated.trustedFingerprint) throw new Error('发布者信任状态已变化，下载已阻止。')
     const result = await dependencies.client.fetchPackage(verified, packageId, updated.trustedFingerprint)
-    const preview = await createPackagePreview(result.package, dependencies.practiceRepository.listInstalledPackages(), practiceSets.map(({ id }) => id), '0.8.0')
+    const preview = await createPackagePreview(result.package, dependencies.practiceRepository.listInstalledPackages(), practiceSets.map(({ id }) => id), APP_VERSION)
     pending.value = { package: result.package, preview, provenance: result.provenance, sourceUrl: source.url }
     feedback.value = '内容包原始字节、目录摘要与字段均已校验。请复核安装预览。'
   })

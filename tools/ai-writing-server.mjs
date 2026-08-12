@@ -88,7 +88,7 @@ async function evaluate(config, value, requestId) {
   } finally { clearTimeout(timeout) }
 }
 
-async function serveStatic(distRoot, pathname, response) {
+async function serveStatic(distRoot, pathname, response, spaFallback = true) {
   const decoded = decodeURIComponent(pathname)
   const requested = resolve(distRoot, `.${decoded}`)
   if (requested !== distRoot && !requested.startsWith(`${distRoot}${sep}`)) return false
@@ -97,7 +97,10 @@ async function serveStatic(distRoot, pathname, response) {
     const metadata = await stat(target)
     if (metadata.isDirectory()) target = resolve(target, 'index.html')
     else if (!metadata.isFile()) return false
-  } catch { target = resolve(distRoot, 'index.html') }
+  } catch {
+    if (!spaFallback) return false
+    target = resolve(distRoot, 'index.html')
+  }
   try {
     const bytes = await readFile(target)
     const immutable = target.includes(`${sep}assets${sep}`)
@@ -107,8 +110,9 @@ async function serveStatic(distRoot, pathname, response) {
   } catch { return false }
 }
 
-export function createAiWritingServer({ config, dist, logger = (value) => process.stdout.write(`${JSON.stringify(value)}\n`) }) {
+export function createAiWritingServer({ config, dist, samples = 'examples', logger = (value) => process.stdout.write(`${JSON.stringify(value)}\n`) }) {
   const distRoot = resolve(dist)
+  const sampleRoot = resolve(samples)
   return createServer(async (request, response) => {
     const started = Date.now()
     const requestId = request.headers['x-request-id']?.toString().slice(0, 120) || crypto.randomUUID()
@@ -125,6 +129,7 @@ export function createAiWritingServer({ config, dist, logger = (value) => proces
         return json(response, 200, result)
       }
       if (request.method === 'GET' || request.method === 'HEAD') {
+        if (url.pathname.startsWith('/examples/') && await serveStatic(sampleRoot, url.pathname.slice('/examples'.length), response, false)) return
         if (await serveStatic(distRoot, url.pathname, response)) return
       }
       return json(response, 404, { code: 'NOT_FOUND', message: 'Resource not found.' })
@@ -140,7 +145,7 @@ export function createAiWritingServer({ config, dist, logger = (value) => proces
 async function main() {
   const options = parseServerArgs(process.argv.slice(2))
   const config = await loadAiConfig({ configPath: options.configPath })
-  const server = createAiWritingServer({ config, dist: options.dist })
+  const server = createAiWritingServer({ config, dist: options.dist, samples: options.samples })
   server.listen(options.port, options.host, () => {
     const address = server.address()
     const port = typeof address === 'object' && address ? address.port : options.port

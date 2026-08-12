@@ -10,7 +10,7 @@ describe('desktop packaging configuration', () => {
       bundle: { targets: string[]; createUpdaterArtifacts?: boolean }
       plugins?: { updater?: { pubkey?: string; endpoints?: string[]; windows?: { installMode?: string } } }
     }
-    expect(pkg.version).toBe('0.8.0')
+    expect(pkg.version).toBe('0.9.0')
     expect(config.version).toBe(pkg.version)
     expect(config.bundle.targets).toContain('nsis')
     expect(config.build.frontendDist).toBe('../dist')

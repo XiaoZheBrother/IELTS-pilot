@@ -39,12 +39,13 @@ export async function loadAiConfig({ configPath, env = process.env } = {}) {
 }
 
 export function parseServerArgs(argv) {
-  const options = { host: '127.0.0.1', port: 4390, dist: 'dist', configPath: undefined }
+  const options = { host: '127.0.0.1', port: 4390, dist: 'dist', samples: 'examples', configPath: undefined }
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index + 1]
     if (argv[index] === '--host' && value) options.host = value
     if (argv[index] === '--port' && value) options.port = Number.parseInt(value, 10)
     if (argv[index] === '--dist' && value) options.dist = value
+    if (argv[index] === '--samples' && value) options.samples = value
     if (argv[index] === '--config' && value) options.configPath = value
   }
   if (!Number.isInteger(options.port) || options.port < 0 || options.port > 65_535) throw new Error('Server port is invalid.')
