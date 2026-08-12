@@ -1,92 +1,61 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import PracticeCard from '../components/PracticeCard.vue'
+import { deriveReadingAnalytics } from '../domain/analytics'
+import { fullReadingMock } from '../data/fullMock'
 import { practiceSets } from '../data/practiceSets'
 import { createBrowserPracticeRepository } from '../storage/practiceRepository'
 
 const repository = createBrowserPracticeRepository()
 const attempts = repository.listAttempts()
-
-function latestAttempt(testId: string) {
-  return attempts.find((attempt) => attempt.testId === testId) ?? null
-}
-
-function formatDate(value: string): string {
-  return new Intl.DateTimeFormat('zh-CN', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value))
-}
+const analytics = deriveReadingAnalytics(attempts)
+const latestAttempt = (testId: string) => attempts.find((attempt) => attempt.testId === testId) ?? null
+const formatDate = (value: string) => new Intl.DateTimeFormat('zh-CN', { month: 'short', day: 'numeric' }).format(new Date(value))
 </script>
 
 <template>
-  <main>
-    <section class="dashboard-hero page-shell">
-      <div class="dashboard-hero__copy">
-        <p class="section-kicker">Independent reading practice · v0.1</p>
-        <h1>读懂文章，<br /><em>也读懂每一个失分点。</em></h1>
-        <p class="dashboard-hero__lede">
-          一张为雅思阅读准备的个人练习桌：限时作答、自动保存、即时评分，并把每个答案的依据摊开给你看。
-        </p>
-        <a class="primary-action" href="#practice-library">选择一套练习 <span>↓</span></a>
-      </div>
-      <aside class="dashboard-hero__brief" aria-label="MVP 功能说明">
-        <span class="brief-stamp">Reading<br />Desk</span>
-        <ol>
-          <li><span>01</span> 英文原创文章</li>
-          <li><span>02</span> 三种阅读题型</li>
-          <li><span>03</span> 逐题答案解析</li>
-        </ol>
-        <p>数据只保存在当前浏览器。</p>
+  <main class="dashboard page-shell">
+    <section class="dashboard-index">
+      <aside class="study-state">
+        <p class="section-kicker">Study status · Local</p>
+        <h1>阅读工作台</h1>
+        <dl>
+          <div><dt>当前估算</dt><dd>{{ analytics.attemptCount ? analytics.averageBand.toFixed(1) : '—' }}<small>Band</small></dd></div>
+          <div><dt>已完成</dt><dd>{{ analytics.attemptCount }}<small>次练习</small></dd></div>
+          <div><dt>累计专注</dt><dd>{{ Math.round(analytics.totalDurationSeconds / 60) }}<small>分钟</small></dd></div>
+        </dl>
+        <p>数据仅保存在当前浏览器，可在统计页导出备份。</p>
+      </aside>
+
+      <section class="mock-launch">
+        <p class="section-kicker">Complete simulation · 01</p>
+        <h2>完整模考 <em>60 MIN</em></h2>
+        <p>{{ fullReadingMock.description }}</p>
+        <ul><li>3 篇文章</li><li>40 道题</li><li>自动保存</li></ul>
+        <RouterLink class="signal-action" :to="`/mock/${fullReadingMock.id}`">开始模考 <span aria-hidden="true">→</span></RouterLink>
+      </section>
+
+      <aside class="recent-strip">
+        <div class="section-heading--line"><h2>最近表现</h2><RouterLink to="/analytics">查看统计</RouterLink></div>
+        <RouterLink v-for="attempt in attempts.slice(0, 4)" :key="attempt.id" class="recent-attempt" :to="`/result/${attempt.id}`">
+          <span>{{ attempt.mode === 'mock' ? '完整模考' : practiceSets.find(({ id }) => id === attempt.testId)?.title }}</span>
+          <time>{{ formatDate(attempt.submittedAt) }}</time>
+          <strong>{{ attempt.score.correct }}/{{ attempt.score.total }}</strong><b>{{ attempt.score.approximateBand.toFixed(1) }}</b>
+        </RouterLink>
+        <p v-if="!attempts.length" class="empty-note">完成第一篇练习后，这里会显示你的最近成绩。</p>
       </aside>
     </section>
 
-    <section id="practice-library" class="practice-library page-shell">
-      <header class="section-heading">
-        <div>
-          <p class="section-kicker">Practice library</p>
-          <h2>今天，从一篇文章开始</h2>
-        </div>
-        <p>2 套练习 · 16 道题 · 约 50 分钟</p>
+    <section class="dashboard-library">
+      <header class="index-heading">
+        <div><p class="section-kicker">Practice index</p><h2>专项练习</h2></div>
+        <RouterLink to="/library">打开完整题库 →</RouterLink>
       </header>
       <div class="practice-grid">
-        <PracticeCard
-          v-for="practiceSet in practiceSets"
-          :key="practiceSet.id"
-          :practice-set="practiceSet"
-          :draft="repository.getDraft(practiceSet.id)"
-          :latest-attempt="latestAttempt(practiceSet.id)"
-        />
+        <PracticeCard v-for="practiceSet in practiceSets" :key="practiceSet.id" :practice-set="practiceSet" :draft="repository.getDraft(practiceSet.id)" :latest-attempt="latestAttempt(practiceSet.id)" />
       </div>
-      <p class="originality-note">
-        <strong>内容说明：</strong>当前内置文章与题目均为项目原创练习材料，不是官方 IELTS 真题。
-      </p>
-    </section>
-
-    <section class="history-section page-shell">
-      <header class="section-heading">
-        <div>
-          <p class="section-kicker">Recent attempts</p>
-          <h2>最近成绩</h2>
-        </div>
-      </header>
-      <div v-if="attempts.length" class="history-list">
-        <RouterLink
-          v-for="attempt in attempts.slice(0, 6)"
-          :key="attempt.id"
-          class="history-row"
-          :to="`/result/${attempt.id}`"
-        >
-          <span>{{ practiceSets.find(({ id }) => id === attempt.testId)?.title }}</span>
-          <time :datetime="attempt.submittedAt">{{ formatDate(attempt.submittedAt) }}</time>
-          <strong>{{ attempt.score.correct }}/{{ attempt.score.total }}</strong>
-          <i>Band {{ attempt.score.approximateBand.toFixed(1) }}</i>
-          <b aria-hidden="true">→</b>
-        </RouterLink>
-      </div>
-      <p v-else class="empty-history">完成第一套练习后，你的成绩与复盘入口会出现在这里。</p>
+      <p class="originality-note"><strong>内容说明：</strong>当前内置文章与题目均为项目原创练习材料，不是官方 IELTS 真题。</p>
     </section>
   </main>
 </template>
+

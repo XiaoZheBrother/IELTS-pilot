@@ -1,0 +1,21 @@
+:root {
+  --paper: #f4f0e7;
+  --paper-bright: #fbf9f4;
+  --paper-muted: #e9eae2;
+  --ink: #161a18;
+  --ink-soft: #5e625d;
+  --line: #b8b8af;
+  --line-strong: #292d2a;
+  --signal: #2155ff;
+  --signal-dark: #1239c7;
+  --signal-soft: #e7ecff;
+  --sage: #dfe7d4;
+  --sage-strong: #426238;
+  --error: #bd3f32;
+  --error-soft: #f4d9d3;
+  --header-height: 68px;
+  --font-ui: Inter, "SF Pro Display", "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+  --font-reading: Georgia, "Times New Roman", "Songti SC", serif;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+

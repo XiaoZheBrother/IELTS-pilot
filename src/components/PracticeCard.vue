@@ -10,7 +10,7 @@ const props = defineProps<{
 
 function draftProgress(): number {
   if (!props.draft) return 0
-  const answered = Object.values(props.draft.answers).filter((value) => value.trim()).length
+  const answered = Object.values(props.draft.answers).filter((value) => value.some((answer) => answer.trim())).length
   return Math.round((answered / props.practiceSet.questions.length) * 100)
 }
 </script>
