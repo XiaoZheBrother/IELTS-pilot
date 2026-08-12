@@ -36,4 +36,11 @@ describe('content package lifecycle', () => {
     expect(conflict).toMatchObject({ ok: false, error: expect.stringContaining('pack-set') })
     expect(uninstallPackage('pack', [installed, conflictOwner])).toEqual([conflictOwner])
   })
+
+  it('blocks packages that require a newer application version', async () => {
+    const future = { ...incoming, minimumAppVersion: '9.0.0' }
+    const preview = await createPackagePreview(future, [], [])
+    expect(preview).toMatchObject({ action: 'blocked', compatibilityError: expect.stringContaining('9.0.0') })
+    expect(await installPackage(future, [], [])).toMatchObject({ ok: false, error: expect.stringContaining('9.0.0') })
+  })
 })

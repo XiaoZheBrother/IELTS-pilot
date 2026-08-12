@@ -1,4 +1,5 @@
 import type { PracticeSet, ReadingQuestion, SourceReference } from '../domain/models'
+import { supplementalPracticeSets } from './supplementalPracticeSets'
 
 type WithoutSource<T> = T extends { sourceRef: SourceReference } ? Omit<T, 'sourceRef'> : never
 type RawReadingQuestion = WithoutSource<ReadingQuestion>
@@ -11,7 +12,7 @@ const rawPracticeSets: RawPracticeSet[] = [
     eyebrow: 'Urban Systems',
     title: 'The Shade Between Buildings',
     summary: '从城市热浪中的步行路线出发，练习识别论点、事实与未给信息。',
-    level: 'B2–C1',
+    level: 'B2-C1',
     durationMinutes: 25,
     topics: ['城市', '气候适应'],
     difficulty: 'medium',
@@ -44,7 +45,7 @@ const rawPracticeSets: RawPracticeSet[] = [
         {
           heading: 'The politics of small decisions',
           paragraphs: [
-            'The most difficult work concerned ownership. A useful route crossed land managed by transport, parks, schools, private landlords and a hospital. Each organisation controlled only a fragment, so no one had previously regarded the entire walk as its responsibility. The pilot created a monthly meeting at which these ordinary decisions—pruning dates, canopy repairs, construction permits—could be considered together.',
+            'The most difficult work concerned ownership. A useful route crossed land managed by transport, parks, schools, private landlords and a hospital. Each organisation controlled only a fragment, so no one had previously regarded the entire walk as its responsibility. The pilot created a monthly meeting at which ordinary decisions about pruning dates, canopy repairs and construction permits could be considered together.',
             'Bellwether’s experiment does not prove that every city needs the same materials or software. Its more transferable lesson is about coordination. Heat protection often already exists, scattered between buildings and budgets. Treating those pieces as a public network makes their gaps visible. It also turns an abstract promise of climate resilience into something a resident can feel on the walk to an appointment.',
           ],
         },
@@ -198,7 +199,7 @@ const rawPracticeSets: RawPracticeSet[] = [
     eyebrow: 'Civic Experiments',
     title: 'When a Library Lends a Workbench',
     summary: '阅读社区修理图书馆的运作方式，训练细节定位与作者态度判断。',
-    level: 'B2–C1',
+    level: 'B2-C1',
     durationMinutes: 25,
     topics: ['社区', '公共知识'],
     difficulty: 'medium',
@@ -232,7 +233,7 @@ const rawPracticeSets: RawPracticeSet[] = [
           heading: 'Knowledge that stays local',
           paragraphs: [
             'The project began with a small environmental grant, but its continuing costs are modest: replacement hand tools, safety testing and a part-time coordinator. The harder resource to maintain is the volunteer group. Rather than depend on one expert, Westbridge pairs newcomers with experienced repairers and rotates responsibility for the opening safety briefing.',
-            'Supporters sometimes claim that repair rooms will transform consumer culture. Westbridge’s staff use more cautious language. A weekly session cannot change how every product is manufactured, and many objects remain uneconomic or unsafe to fix. What the room can do is make technical curiosity ordinary. In a building dedicated to shared knowledge, the workbench becomes another kind of reading table—one at which evidence is handled, assumptions are questioned and a useful answer may begin with uncertainty.',
+            'Supporters sometimes claim that repair rooms will transform consumer culture. Westbridge’s staff use more cautious language. A weekly session cannot change how every product is manufactured, and many objects remain uneconomic or unsafe to fix. What the room can do is make technical curiosity ordinary. In a building dedicated to shared knowledge, the workbench becomes another kind of reading table where evidence is handled, assumptions are questioned and a useful answer may begin with uncertainty.',
           ],
         },
       ],
@@ -530,13 +531,15 @@ const sourceRefs: SourceReference[][] = [
   ],
 ]
 
-export const practiceSets: PracticeSet[] = rawPracticeSets.map((set, setIndex) => ({
+const mockPracticeSets: PracticeSet[] = rawPracticeSets.map((set, setIndex) => ({
   ...set,
   questions: set.questions.map((question, questionIndex) => ({
     ...question,
     sourceRef: sourceRefs[setIndex]?.[questionIndex] ?? { sectionIndex: 0, paragraphIndex: 0 },
   })) as ReadingQuestion[],
 }))
+
+export const practiceSets: PracticeSet[] = [...mockPracticeSets, ...supplementalPracticeSets]
 
 export function getPracticeSet(testId: string): PracticeSet | undefined {
   return practiceSets.find(({ id }) => id === testId)

@@ -14,7 +14,7 @@ const route = useRoute()
 const router = useRouter()
 const repository = createBrowserPracticeRepository()
 const practiceSet = getPracticeSet(String(route.params.testId)) ?? repository.listImportedSets().find(({ id }) => id === String(route.params.testId))
-const session = practiceSet ? usePracticeSession(practiceSet, { repository }) : null
+const session = practiceSet ? usePracticeSession(practiceSet, { repository, defaultTimed: repository.getPreferences().defaultTimedPractice }) : null
 const reader = practiceSet ? usePassageAnnotations(practiceSet.id, repository) : null
 const { preferences } = useReaderPreferences(repository)
 const confirmOpen = ref(false)

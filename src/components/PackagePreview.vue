@@ -11,5 +11,6 @@ defineProps<{ preview: PackagePreview }>()
     <dl><div><dt>练习</dt><dd>{{ preview.setCount }} 套</dd></div><div><dt>题目</dt><dd>{{ preview.questionCount }} 题</dd></div><div><dt>主题</dt><dd>{{ preview.topics.join(' · ') || '未标注' }}</dd></div></dl>
     <p class="package-digest">SHA-256 · {{ preview.digest.slice(7, 23) }}…</p>
     <p v-if="preview.conflicts.length" class="package-conflicts">冲突的练习 ID：{{ preview.conflicts.join('、') }}</p>
+    <p v-if="preview.compatibilityError" class="package-conflicts">{{ preview.compatibilityError }}</p>
   </section>
 </template>

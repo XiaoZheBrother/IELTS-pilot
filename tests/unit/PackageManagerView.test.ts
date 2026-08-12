@@ -22,8 +22,9 @@ describe('PackageManagerView', () => {
     expect(createBrowserPracticeRepository().listInstalledPackages()).toHaveLength(0)
 
     await wrapper.get('[data-testid="confirm-package-install"]').trigger('click')
-    await flushPromises()
-    expect(createBrowserPracticeRepository().getInstalledPackage('test-package')).toMatchObject({ version: '1.0.0' })
+    await vi.waitFor(() => {
+      expect(createBrowserPracticeRepository().getInstalledPackage('test-package')).toMatchObject({ version: '1.0.0' })
+    })
     await wrapper.get('[data-testid="uninstall-package"]').trigger('click')
     expect(createBrowserPracticeRepository().getInstalledPackage('test-package')).toBeNull()
   })

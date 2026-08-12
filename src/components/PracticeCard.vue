@@ -6,7 +6,9 @@ const props = defineProps<{
   practiceSet: PracticeSet
   draft: PracticeDraft | null
   latestAttempt: Attempt | null
+  isFavorite?: boolean
 }>()
+const emit = defineEmits<{ favorite: [setId: string] }>()
 
 function draftProgress(): number {
   if (!props.draft) return 0
@@ -20,6 +22,7 @@ function draftProgress(): number {
     <header class="practice-card__header">
       <span class="practice-card__number">{{ props.practiceSet.sequence }}</span>
       <div>
+        <button data-testid="card-favorite" class="card-favorite" type="button" :aria-label="props.isFavorite ? '取消收藏' : '收藏练习'" :aria-pressed="props.isFavorite" @click="emit('favorite', props.practiceSet.id)"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3.6 14.6 9l5.9.9-4.3 4.2 1 5.9-5.2-2.8L6.8 20l1-5.9-4.3-4.2L9.4 9 12 3.6Z" :fill="props.isFavorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.6" /></svg></button>
         <p class="section-kicker">{{ props.practiceSet.eyebrow }}</p>
         <span class="practice-card__level">{{ props.practiceSet.level }}</span>
       </div>

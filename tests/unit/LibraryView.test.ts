@@ -6,7 +6,7 @@ describe('LibraryView', () => {
 
   it('filters the passage index by search text and difficulty', async () => {
     const wrapper = mount(LibraryView, { global: { stubs: { RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' } } } })
-    expect(wrapper.findAll('[data-testid="library-row"]')).toHaveLength(3)
+    expect(wrapper.findAll('[data-testid="library-row"]')).toHaveLength(5)
     await wrapper.get('input[type="search"]').setValue('rainwater')
     expect(wrapper.findAll('[data-testid="library-row"]')).toHaveLength(1)
     expect(wrapper.text()).toContain('The Ledger Beneath the Roof')

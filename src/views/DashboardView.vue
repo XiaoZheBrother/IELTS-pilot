@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import { ref } from 'vue'
 import PracticeCard from '../components/PracticeCard.vue'
 import { deriveReadingAnalytics } from '../domain/analytics'
 import { fullReadingMock } from '../data/fullMock'
@@ -11,6 +12,11 @@ const attempts = repository.listAttempts()
 const analytics = deriveReadingAnalytics(attempts)
 const latestAttempt = (testId: string) => attempts.find((attempt) => attempt.testId === testId) ?? null
 const formatDate = (value: string) => new Intl.DateTimeFormat('zh-CN', { month: 'short', day: 'numeric' }).format(new Date(value))
+const favoriteSetIds = ref(repository.listFavoriteSetIds())
+function toggleFavorite(setId: string): void {
+  repository.toggleFavoriteSet(setId)
+  favoriteSetIds.value = repository.listFavoriteSetIds()
+}
 </script>
 
 <template>
@@ -20,7 +26,7 @@ const formatDate = (value: string) => new Intl.DateTimeFormat('zh-CN', { month: 
         <p class="section-kicker">Study status · Local</p>
         <h1>阅读工作台</h1>
         <dl>
-          <div><dt>当前估算</dt><dd>{{ analytics.attemptCount ? analytics.averageBand.toFixed(1) : '—' }}<small>Band</small></dd></div>
+          <div><dt>当前估算</dt><dd>{{ analytics.attemptCount ? analytics.averageBand.toFixed(1) : '--' }}<small>Band</small></dd></div>
           <div><dt>已完成</dt><dd>{{ analytics.attemptCount }}<small>次练习</small></dd></div>
           <div><dt>累计专注</dt><dd>{{ Math.round(analytics.totalDurationSeconds / 60) }}<small>分钟</small></dd></div>
         </dl>
@@ -52,7 +58,7 @@ const formatDate = (value: string) => new Intl.DateTimeFormat('zh-CN', { month: 
         <RouterLink to="/library">打开完整题库 →</RouterLink>
       </header>
       <div class="practice-grid">
-        <PracticeCard v-for="practiceSet in practiceSets" :key="practiceSet.id" :practice-set="practiceSet" :draft="repository.getDraft(practiceSet.id)" :latest-attempt="latestAttempt(practiceSet.id)" />
+        <PracticeCard v-for="practiceSet in practiceSets" :key="practiceSet.id" :practice-set="practiceSet" :draft="repository.getDraft(practiceSet.id)" :latest-attempt="latestAttempt(practiceSet.id)" :is-favorite="favoriteSetIds.includes(practiceSet.id)" @favorite="toggleFavorite" />
       </div>
       <p class="originality-note"><strong>内容说明：</strong>当前内置文章与题目均为项目原创练习材料，不是官方 IELTS 真题。</p>
     </section>

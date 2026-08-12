@@ -69,6 +69,9 @@
 .review-row__summary > div:not(.review-row__question) { display: flex; flex-direction: column; gap: 7px; }
 .review-row__summary b { font-size: 11px; }
 .review-row__summary button { min-height: 36px; border: 1px solid var(--line); background: transparent; color: var(--signal); cursor: pointer; font-size: 10px; font-weight: 700; }
+.review-row__actions { display: grid !important; grid-template-columns: 42px 1fr; gap: 6px !important; }
+.review-row__actions svg { width: 18px; height: 18px; }
+.print-report { min-height: 44px; padding: 0 14px; border: 1px solid var(--line-strong); background: transparent; font-weight: 700; }
 .review-row__detail { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--signal); background: var(--paper-bright); }
 .review-row__detail blockquote, .review-row__detail > div { padding: 32px; margin: 0; }
 .review-row__detail blockquote { border-right: 1px solid var(--line); }

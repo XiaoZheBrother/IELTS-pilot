@@ -7,6 +7,7 @@ export interface PracticeSessionOptions {
   repository: PracticeRepository
   now?: () => Date
   createId?: () => string
+  defaultTimed?: boolean
 }
 
 export function usePracticeSession(practiceSet: PracticeSet, options: PracticeSessionOptions) {
@@ -19,7 +20,7 @@ export function usePracticeSession(practiceSet: PracticeSet, options: PracticeSe
   const currentIndex = ref(Math.min(Math.max(draft?.currentIndex ?? 0, 0), practiceSet.questions.length - 1))
   const remainingSeconds = ref(Math.min(Math.max(draft?.remainingSeconds ?? totalSeconds, 0), totalSeconds))
   const status = ref<'active' | 'submitted'>('active')
-  const isPaused = ref(Boolean(draft?.isPaused))
+  const isPaused = ref(draft ? Boolean(draft.isPaused) : options.defaultTimed === false)
   const attempt = shallowRef<Attempt | null>(null)
 
   const answeredCount = computed(() => practiceSet.questions.filter(({ id }) => answers.value[id]?.some((answer) => answer.trim())).length)

@@ -38,6 +38,8 @@ const supportedTypes = new Set<QuestionType>([
   'matching-sentence-endings', 'short-answer', 'sentence-completion',
   'summary-word-bank', 'diagram-label',
 ])
+const optionTypes = new Set<QuestionType>(['multiple-choice', 'multiple-select', 'matching-headings', 'matching-information', 'matching-features', 'matching-sentence-endings', 'summary-word-bank'])
+const wordLimitTypes = new Set<QuestionType>(['short-answer', 'sentence-completion', 'diagram-label'])
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -103,9 +105,25 @@ export function validateContentPackage(input: unknown): ContentPackageResult {
     else if (seenSetIds.has(id)) errors.push(`duplicate set id: ${id}`)
     else seenSetIds.add(id)
 
-    if (!isRecord(candidate.provenance) || !nonEmptyString(candidate.provenance.license)) errors.push(`sets[${setIndex}].provenance.license is required`)
+    for (const key of ['sequence', 'eyebrow', 'title', 'summary', 'level'] as const) if (!nonEmptyString(candidate[key])) errors.push(`sets[${setIndex}].${key} is required`)
+    if (!Number.isFinite(candidate.durationMinutes) || (candidate.durationMinutes as number) < 1) errors.push(`sets[${setIndex}].durationMinutes is invalid`)
+    if (!Array.isArray(candidate.topics) || candidate.topics.length === 0 || candidate.topics.some((topic) => !nonEmptyString(topic))) errors.push(`sets[${setIndex}].topics is required`)
+    if (!['foundation', 'medium', 'advanced'].includes(String(candidate.difficulty))) errors.push(`sets[${setIndex}].difficulty is invalid`)
+    if (!Number.isFinite(candidate.estimatedBand) || (candidate.estimatedBand as number) < 0 || (candidate.estimatedBand as number) > 9) errors.push(`sets[${setIndex}].estimatedBand is invalid`)
+
+    if (!isRecord(candidate.provenance)) errors.push(`sets[${setIndex}].provenance is required`)
+    else {
+      if (!['original', 'public-domain', 'licensed'].includes(String(candidate.provenance.kind))) errors.push(`sets[${setIndex}].provenance.kind is invalid`)
+      for (const key of ['author', 'note', 'license'] as const) if (!nonEmptyString(candidate.provenance[key])) errors.push(`sets[${setIndex}].provenance.${key} is required`)
+    }
     if (!isRecord(candidate.passage) || !Array.isArray(candidate.passage.sections)) { errors.push(`sets[${setIndex}].passage.sections is required`); return }
+    if (!nonEmptyString(candidate.passage.title)) errors.push(`sets[${setIndex}].passage.title is required`)
+    if (!nonEmptyString(candidate.passage.deck)) errors.push(`sets[${setIndex}].passage.deck is required`)
     const sections = candidate.passage.sections
+    if (sections.length === 0) errors.push(`sets[${setIndex}].passage.sections is required`)
+    sections.forEach((section, sectionIndex) => {
+      if (!isRecord(section) || !nonEmptyString(section.heading) || !Array.isArray(section.paragraphs) || section.paragraphs.length === 0 || section.paragraphs.some((paragraph) => !nonEmptyString(paragraph))) errors.push(`sets[${setIndex}].passage.sections[${sectionIndex}] is invalid`)
+    })
     if (!Array.isArray(candidate.questions) || candidate.questions.length === 0) { errors.push(`sets[${setIndex}].questions is required`); return }
 
     candidate.questions.forEach((question, questionIndex) => {
@@ -114,7 +132,15 @@ export function validateContentPackage(input: unknown): ContentPackageResult {
       else if (seenQuestionIds.has(question.id)) errors.push(`duplicate question id: ${question.id}`)
       else seenQuestionIds.add(question.id)
       if (!supportedTypes.has(question.type as QuestionType)) errors.push(`unsupported question type at ${setIndex}:${questionIndex}`)
-      if (!Array.isArray(question.acceptedAnswers) || question.acceptedAnswers.length === 0) errors.push(`acceptedAnswers are required at ${setIndex}:${questionIndex}`)
+      const type = question.type as QuestionType
+      if (optionTypes.has(type)) {
+        if (!Array.isArray(question.options) || question.options.length < 2 || question.options.some((option) => !isRecord(option) || !nonEmptyString(option.key) || !nonEmptyString(option.label))) errors.push(`options are required at ${setIndex}:${questionIndex}`)
+      }
+      if (type === 'multiple-select' && (!Number.isInteger(question.selectLimit) || (question.selectLimit as number) < 2 || !Array.isArray(question.options) || (question.selectLimit as number) > question.options.length)) errors.push(`selectLimit is invalid at ${setIndex}:${questionIndex}`)
+      if (wordLimitTypes.has(type) && (!Number.isInteger(question.wordLimit) || (question.wordLimit as number) < 1)) errors.push(`wordLimit is invalid at ${setIndex}:${questionIndex}`)
+      if (type === 'sentence-completion' && !nonEmptyString(question.beforeBlank)) errors.push(`beforeBlank is required at ${setIndex}:${questionIndex}`)
+      if (type === 'diagram-label' && !nonEmptyString(question.diagramDescription)) errors.push(`diagramDescription is required at ${setIndex}:${questionIndex}`)
+      if (!Array.isArray(question.acceptedAnswers) || question.acceptedAnswers.length === 0 || question.acceptedAnswers.some((answer) => Array.isArray(answer) ? answer.length === 0 || answer.some((part) => !nonEmptyString(part)) : !nonEmptyString(answer))) errors.push(`acceptedAnswers are required at ${setIndex}:${questionIndex}`)
       if (!nonEmptyString(question.prompt)) errors.push(`question prompt is required at ${setIndex}:${questionIndex}`)
       if (!nonEmptyString(question.explanation)) errors.push(`question explanation is required at ${setIndex}:${questionIndex}`)
       if (!isRecord(question.sourceRef)) { errors.push(`sourceRef is required at ${setIndex}:${questionIndex}`); return }

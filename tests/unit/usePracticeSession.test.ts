@@ -59,5 +59,14 @@ describe('practice session', () => {
     restored.tick()
     expect(restored.remainingSeconds.value).toBe(before - 1)
   })
+
+  it('starts a new practice paused when timed practice is disabled by default', () => {
+    const repository = createPracticeRepository(createMemoryStorage())
+    const session = usePracticeSession(practiceSet, { repository, defaultTimed: false })
+    expect(session.isPaused.value).toBe(true)
+    const before = session.remainingSeconds.value
+    session.tick()
+    expect(session.remainingSeconds.value).toBe(before)
+  })
 })
 

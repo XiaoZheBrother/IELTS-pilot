@@ -8,7 +8,7 @@ const V2_STORAGE_KEY = 'ielts-pilot:practice:v2'
 const LEGACY_STORAGE_KEY = 'ielts-pilot:practice:v1'
 
 export const DEFAULT_READER_PREFERENCES: ReaderPreferences = {
-  theme: 'paper', fontScale: 1, lineHeight: 1.72, readingWidth: 780, defaultTimedPractice: true,
+  theme: 'paper', fontScale: 1, lineHeight: 1.85, readingWidth: 850, defaultTimedPractice: true,
 }
 
 interface PersistedPracticeState {

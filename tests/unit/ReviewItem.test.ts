@@ -10,8 +10,9 @@ const result: ReadingItemResult = { questionId: question.id, questionType: quest
 describe('ReviewItem', () => {
   it('expands the cited source paragraph and explanation', async () => {
     const wrapper = mount(ReviewItem, { props: { index: 0, question, result, practiceSet } })
-    expect(wrapper.find('[data-testid="source-excerpt"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="source-excerpt"]').isVisible()).toBe(false)
     await wrapper.get('button[aria-expanded]').trigger('click')
+    expect(wrapper.get('.review-row__detail').attributes('style')).not.toContain('display: none')
     expect(wrapper.get('[data-testid="source-excerpt"]').text()).toContain(practiceSet.passage.sections[question.sourceRef.sectionIndex]!.paragraphs[question.sourceRef.paragraphIndex]!.slice(0, 40))
     expect(wrapper.text()).toContain(question.explanation)
   })

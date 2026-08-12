@@ -13,6 +13,7 @@ export interface PackagePreview {
   digest: string
   action: 'install' | 'upgrade' | 'blocked'
   conflicts: string[]
+  compatibilityError?: string
 }
 
 export type PackageInstallResult = { ok: true; packages: InstalledContentPackage[] } | { ok: false; error: string }
@@ -46,22 +47,24 @@ function conflictsFor(incoming: NormalizedContentPackage, installed: InstalledCo
   return incoming.sets.map(({ id }) => id).filter((id) => occupied.has(id))
 }
 
-export async function createPackagePreview(incoming: NormalizedContentPackage, installed: InstalledContentPackage[], bundledSetIds: string[]): Promise<PackagePreview> {
+export async function createPackagePreview(incoming: NormalizedContentPackage, installed: InstalledContentPackage[], bundledSetIds: string[], appVersion = '0.5.0'): Promise<PackagePreview> {
   const current = installed.find(({ packageId }) => packageId === incoming.packageId)
   const conflicts = conflictsFor(incoming, installed, bundledSetIds)
   const newer = current ? compareVersions(incoming.version, current.version) > 0 : true
+  const compatibilityError = compareVersions(incoming.minimumAppVersion, appVersion) > 0 ? `需要 IELTS Pilot ${incoming.minimumAppVersion} 或更高版本。` : undefined
   return {
     packageId: incoming.packageId, name: incoming.name, version: incoming.version, owner: incoming.owner,
     license: incoming.license, setCount: incoming.sets.length,
     questionCount: incoming.sets.reduce((sum, set) => sum + set.questions.length, 0),
     topics: [...new Set(incoming.sets.flatMap(({ topics }) => topics))], digest: await digestPackage(incoming),
-    action: conflicts.length || !newer ? 'blocked' : current ? 'upgrade' : 'install', conflicts,
+    action: conflicts.length || !newer || compatibilityError ? 'blocked' : current ? 'upgrade' : 'install', conflicts, compatibilityError,
   }
 }
 
 export async function installPackage(incoming: NormalizedContentPackage, installed: InstalledContentPackage[], bundledSetIds: string[], now = () => new Date()): Promise<PackageInstallResult> {
   const preview = await createPackagePreview(incoming, installed, bundledSetIds)
   if (preview.conflicts.length) return { ok: false, error: `题库 ID 冲突：${preview.conflicts.join('、')}` }
+  if (preview.compatibilityError) return { ok: false, error: preview.compatibilityError }
   if (preview.action === 'blocked') return { ok: false, error: '只能安装版本号更高的更新包。' }
   if (incoming.integrity && incoming.integrity !== preview.digest) return { ok: false, error: '内容包完整性校验失败。' }
   const next: InstalledContentPackage = {

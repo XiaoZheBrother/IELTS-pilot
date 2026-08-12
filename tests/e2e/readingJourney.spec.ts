@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
 
 test('shows the complete mock and searchable original practice library', async ({ page }) => {
   await expect(page.getByRole('heading', { name: '完整模考' })).toBeVisible()
-  await expect(page.getByTestId('practice-card')).toHaveCount(3)
+  await expect(page.getByTestId('practice-card')).toHaveCount(5)
   await page.getByRole('link', { name: '题库', exact: true }).click()
   await expect(page).toHaveURL(/\/library$/)
   await page.getByRole('searchbox').fill('rainwater')
@@ -32,7 +32,7 @@ test('completes a forty-question mock and opens source-linked review', async ({ 
   await expect(page.getByRole('heading', { name: '1 / 40' })).toBeVisible()
   await expect(page.locator('.review-row')).toHaveCount(40)
   await page.locator('.review-row').first().getByRole('button', { name: '查看原文' }).click()
-  await expect(page.getByTestId('source-excerpt')).toContainText('Bellwether')
+  await expect(page.locator('.review-row').first().getByTestId('source-excerpt')).toContainText('Bellwether')
   await page.reload()
   await expect(page.getByRole('heading', { name: '1 / 40' })).toBeVisible()
   await page.getByRole('link', { name: '查看统计' }).click()

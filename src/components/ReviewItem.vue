@@ -23,9 +23,9 @@ function formatAnswers(values: Array<string | string[]>): string {
       </div>
       <div><small>你的答案</small><b>{{ result.givenAnswer.join(' + ') || '未作答' }}</b></div>
       <div><small>正确答案</small><b>{{ formatAnswers(result.acceptedAnswers) }}</b></div>
-      <div class="review-row__actions"><button data-testid="favorite-question" type="button" :aria-pressed="favorite" @click="emit('toggle-favorite', question.id)">{{ favorite ? '★' : '☆' }}</button><button type="button" :aria-expanded="expanded" @click="expanded = !expanded">{{ expanded ? '收起原文' : '查看原文' }}</button></div>
+      <div class="review-row__actions"><button data-testid="favorite-question" type="button" :aria-label="favorite ? '取消收藏题目' : '收藏题目'" :aria-pressed="favorite" @click="emit('toggle-favorite', question.id)"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3.6 14.6 9l5.9.9-4.3 4.2 1 5.9-5.2-2.8L6.8 20l1-5.9-4.3-4.2L9.4 9 12 3.6Z" :fill="favorite ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.6" /></svg></button><button type="button" :aria-expanded="expanded" @click="expanded = !expanded">{{ expanded ? '收起原文' : '查看原文' }}</button></div>
     </div>
-    <div v-if="expanded" class="review-row__detail">
+    <div v-show="expanded" class="review-row__detail">
       <blockquote data-testid="source-excerpt">
         <span>原文定位 · {{ practiceSet.passage.title }}</span>
         <p>{{ sourceParagraph }}</p>

@@ -57,7 +57,7 @@ export function useMockSession(mock: MockTest, practiceSets: PracticeSet[], opti
   function combinedSet(): PracticeSet {
     return {
       id: mock.id, sequence: 'M1', eyebrow: 'Complete Mock', title: mock.title,
-      summary: mock.description, level: 'B2–C1', durationMinutes: mock.durationMinutes,
+      summary: mock.description, level: 'B2-C1', durationMinutes: mock.durationMinutes,
       topics: ['完整模考'], difficulty: 'advanced', estimatedBand: 7,
       passage: { title: mock.title, deck: mock.description, sections: [] },
       provenance: { kind: 'original', author: 'IELTS Pilot', note: 'Combined from original bundled passages.', license: 'CC-BY-4.0' },

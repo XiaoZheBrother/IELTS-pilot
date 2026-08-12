@@ -8,7 +8,11 @@ describe('App shell', () => {
     const router = createRouter({ history: createMemoryHistory(), routes: [
       { path: '/', name: 'home', component: { template: '<main data-testid="route-view">当前页面</main>' } },
       { path: '/library', name: 'library', component: empty },
+      { path: '/errors', name: 'errors', component: empty },
+      { path: '/favorites', name: 'favorites', component: empty },
       { path: '/analytics', name: 'analytics', component: empty },
+      { path: '/settings', name: 'settings', component: empty },
+      { path: '/about', name: 'about', component: empty },
     ] })
     await router.push('/')
     await router.isReady()
@@ -16,6 +20,9 @@ describe('App shell', () => {
     expect(wrapper.get('[data-testid="brand"]').text()).toContain('IELTS PILOT')
     expect(wrapper.get('[data-testid="route-view"]').text()).toBe('当前页面')
     expect(wrapper.get('nav').text()).toContain('题库')
+    expect(wrapper.get('nav').text()).toContain('错题本')
+    expect(wrapper.get('nav').text()).toContain('收藏')
+    expect(wrapper.get('[data-testid="utility-nav"]').text()).toContain('设置')
     expect(wrapper.get('.skip-link').attributes('href')).toBe('#app-content')
   })
 })

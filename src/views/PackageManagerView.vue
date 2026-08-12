@@ -20,7 +20,7 @@ async function loadPackageText(text: string): Promise<void> {
     if (!result.ok) { feedback.value = `无法预览：${result.errors.join('；')}`; incoming.value = null; preview.value = null; return }
     incoming.value = result.value
     preview.value = await createPackagePreview(result.value, installed.value, practiceSets.map(({ id }) => id))
-    feedback.value = preview.value.action === 'blocked' ? '内容包存在冲突，安装已阻止。' : '校验完成，请确认来源和授权后再安装。'
+    feedback.value = preview.value.compatibilityError ?? (preview.value.action === 'blocked' ? '内容包存在版本或练习 ID 冲突，安装已阻止。' : '校验完成，请确认来源和授权后再安装。')
   } catch { feedback.value = '文件不是有效的 JSON 内容包。'; incoming.value = null; preview.value = null }
 }
 

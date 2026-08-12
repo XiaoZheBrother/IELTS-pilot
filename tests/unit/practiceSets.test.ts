@@ -2,8 +2,9 @@ import { fullReadingMock, getMockPracticeSets } from '../../src/data/fullMock'
 import { getPracticeSet, practiceSets } from '../../src/data/practiceSets'
 
 describe('practice set catalog', () => {
-  it('ships three original, source-linked passage sets', () => {
-    expect(practiceSets).toHaveLength(3)
+  it('ships five original, source-linked passage sets', () => {
+    expect(practiceSets).toHaveLength(5)
+    expect(practiceSets.flatMap((set) => set.questions)).toHaveLength(54)
     expect(getPracticeSet('shade-networks')?.title).toBe('The Shade Between Buildings')
     for (const set of practiceSets) {
       expect(set.provenance.kind).toBe('original')

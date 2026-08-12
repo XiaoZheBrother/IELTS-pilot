@@ -14,8 +14,47 @@
   --error: #bd3f32;
   --error-soft: #f4d9d3;
   --header-height: 68px;
+  --header-bg: rgba(244, 240, 231, .96);
+  --shadow-border: 0 0 0 1px rgba(0, 0, 0, .07), 0 1px 2px -1px rgba(0, 0, 0, .08), 0 4px 10px rgba(0, 0, 0, .035);
+  --shadow-border-hover: 0 0 0 1px rgba(0, 0, 0, .12), 0 2px 5px rgba(0, 0, 0, .07);
+  --reader-font-scale: 1;
+  --reader-line-height: 1.85;
+  --reader-width: 850px;
   --font-ui: Inter, "SF Pro Display", "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
   --font-reading: Georgia, "Times New Roman", "Songti SC", serif;
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+:root[data-reader-theme='sepia'] {
+  --paper: #e8dfcc;
+  --paper-bright: #f3ead8;
+  --paper-muted: #ded3bd;
+  --ink: #2b241d;
+  --ink-soft: #6e6253;
+  --line: #b8aa93;
+  --line-strong: #40372e;
+  --signal-soft: #dce2f8;
+  --header-bg: rgba(232, 223, 204, .96);
+}
+
+:root[data-reader-theme='night'] {
+  color-scheme: dark;
+  --paper: #141816;
+  --paper-bright: #1b211e;
+  --paper-muted: #242b27;
+  --ink: #edf0ea;
+  --ink-soft: #aeb6af;
+  --line: #3b443f;
+  --line-strong: #89948d;
+  --signal: #7c9cff;
+  --signal-dark: #a8bbff;
+  --signal-soft: #263557;
+  --sage: #2d4030;
+  --sage-strong: #a4c59b;
+  --error: #ff8b7d;
+  --error-soft: #4d2926;
+  --header-bg: rgba(20, 24, 22, .97);
+  --shadow-border: 0 0 0 1px rgba(255, 255, 255, .08);
+  --shadow-border-hover: 0 0 0 1px rgba(255, 255, 255, .14);
 }
 

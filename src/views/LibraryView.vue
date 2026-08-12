@@ -68,7 +68,7 @@ async function importPackage(event: Event): Promise<void> {
       <article v-for="set in filteredSets" :key="set.id" data-testid="library-row" class="library-row">
         <div><span>{{ set.sequence }}</span><div><h2>{{ set.title }}</h2><p>{{ set.topics.join(' · ') }} · {{ set.provenance.kind === 'original' ? '项目原创' : '已授权导入' }}</p></div></div>
         <span>{{ set.level }}</span><strong>{{ set.questions.length }}</strong><span>{{ new Set(set.questions.map(({ type }) => type)).size }} 种</span>
-        <div class="library-row__actions"><button data-testid="favorite-set" type="button" :aria-pressed="favoriteSetIds.includes(set.id)" @click="toggleFavorite(set.id)">{{ favoriteSetIds.includes(set.id) ? '★ 已收藏' : '☆ 收藏' }}</button><RouterLink :to="`/practice/${set.id}`">开始练习 →</RouterLink></div>
+        <div class="library-row__actions"><button data-testid="favorite-set" type="button" :aria-pressed="favoriteSetIds.includes(set.id)" @click="toggleFavorite(set.id)">{{ favoriteSetIds.includes(set.id) ? '已收藏' : '收藏' }}</button><RouterLink :to="`/practice/${set.id}`">开始练习 →</RouterLink></div>
       </article>
       <p v-if="!filteredSets.length" class="empty-note">没有符合当前条件的练习。</p>
     </section>

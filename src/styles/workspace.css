@@ -10,20 +10,22 @@
 .exam-timer span { color: var(--ink-soft); font-size: 9px; }
 .exam-timer strong { font-size: 22px; font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
 .exam-timer.urgent strong { color: var(--error); }
+.pause-practice { min-width: 108px; border: 0; border-left: 1px solid var(--line); background: transparent; color: var(--signal); font-weight: 700; }
+.exam-timer.paused strong { color: var(--signal); }
 .submit-exam { min-width: 118px; border: 0; background: var(--signal); color: #fff; cursor: pointer; font-weight: 700; }
 .practice-title { display: flex; align-items: center; gap: 15px; padding-left: 20px; }
 .practice-title span { color: var(--signal); }
 .exam-workspace { display: grid; min-height: calc(100vh - 142px); grid-template-columns: minmax(0, 1.08fr) minmax(410px, .92fr); padding-bottom: 82px; }
 .exam-passage, .exam-questions { height: calc(100vh - 144px); overflow: auto; }
 .exam-passage { padding: clamp(40px, 5vw, 78px); border-right: 1px solid var(--line-strong); background: var(--paper-bright); }
-.exam-passage > header { max-width: 850px; padding-bottom: 36px; margin: 0 auto 44px; border-bottom: 1px solid var(--line-strong); }
+.exam-passage > header { max-width: var(--reader-width); padding-bottom: 36px; margin: 0 auto 44px; border-bottom: 1px solid var(--line-strong); }
 .exam-passage > header h1 { margin: 0 0 15px; font: 500 clamp(42px, 4.6vw, 68px)/.98 var(--font-reading); letter-spacing: -.055em; }
 .exam-passage > header > p:last-child { margin: 0; color: var(--ink-soft); font: italic 16px/1.65 var(--font-reading); }
-.passage-block { display: grid; max-width: 850px; grid-template-columns: 36px minmax(0, 1fr); gap: 22px; margin: 0 auto 42px; }
+.passage-block { display: grid; max-width: var(--reader-width); grid-template-columns: 36px minmax(0, 1fr); gap: 22px; margin: 0 auto 42px; }
 .passage-block > span { display: grid; width: 28px; height: 28px; place-items: center; border: 1px solid var(--line-strong); color: var(--signal); font: 700 12px/1 var(--font-reading); }
 .passage-block h2 { margin: 2px 0 14px; font: 600 20px/1.25 var(--font-reading); }
-.passage-block p { color: #252a27; font: 400 17px/1.85 var(--font-reading); }
-.exam-passage footer { max-width: 850px; padding-top: 18px; margin: 0 auto; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 9px; line-height: 1.6; }
+.passage-block p { color: var(--ink); font: 400 calc(17px * var(--reader-font-scale))/var(--reader-line-height) var(--font-reading); }
+.exam-passage footer { max-width: var(--reader-width); padding-top: 18px; margin: 0 auto; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 9px; line-height: 1.6; }
 .exam-questions { padding: clamp(30px, 3.5vw, 55px); background: var(--paper); }
 .question-context { display: flex; align-items: flex-start; justify-content: space-between; gap: 30px; padding-bottom: 23px; margin-bottom: 28px; border-bottom: 1px solid var(--line-strong); }
 .question-context strong { font-size: 20px; }
@@ -49,6 +51,9 @@
 .question-actions button { min-height: 44px; padding: 0 17px; border: 1px solid var(--line-strong); background: transparent; cursor: pointer; font-weight: 700; }
 .question-actions button:last-child { margin-left: auto; border-color: var(--signal); color: var(--signal); }
 .question-actions button:disabled { cursor: not-allowed; opacity: .35; }
+.paused-banner { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 13px 16px; margin-bottom: 20px; border-left: 3px solid var(--signal); background: var(--signal-soft); color: var(--signal-dark); }
+.paused-banner span, .shortcut-hint { color: var(--ink-soft); font-size: 10px; }
+.shortcut-hint { margin: 18px 0 0; text-align: right; }
 .compact-question-nav { display: grid; grid-template-columns: repeat(auto-fit, minmax(34px, 1fr)); margin-top: 26px; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
 .compact-question-nav button, .mock-question-nav button { position: relative; min-height: 36px; border: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: transparent; cursor: pointer; font-size: 10px; }
 .compact-question-nav button.answered, .mock-question-nav button.answered { background: var(--sage); }

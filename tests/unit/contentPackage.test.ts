@@ -1,6 +1,8 @@
 import { validateContentPackage } from '../../src/domain/contentPackage'
 import type { ContentPackage } from '../../src/domain/contentPackage'
 import type { PracticeSet } from '../../src/domain/models'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 const set: PracticeSet = {
   id: 'imported-one', sequence: 'X1', eyebrow: 'Imported', title: 'Authorized sample',
@@ -65,6 +67,23 @@ describe('content package validation', () => {
     [{ ...validPackageV2, description: '' }, 'description'],
   ])('rejects incomplete version two metadata', (candidate, errorFragment) => {
     const result = validateContentPackage(candidate)
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.errors.join(' ')).toContain(errorFragment)
+  })
+
+  it('ships a valid schema version two example package', () => {
+    const example = JSON.parse(readFileSync(resolve('examples/sample-content-package-v2.json'), 'utf8')) as unknown
+    const result = validateContentPackage(example)
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.value.sets[0]?.questions.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it.each([
+    [{ ...set.questions[0], type: 'multiple-choice', options: [] }, 'options'],
+    [{ ...set.questions[0], type: 'multiple-select', options: [{ key: 'A', label: 'One' }], selectLimit: 2 }, 'selectLimit'],
+    [{ ...set.questions[0], type: 'short-answer', wordLimit: 0 }, 'wordLimit'],
+  ])('rejects incomplete type-specific question fields', (question, errorFragment) => {
+    const result = validateContentPackage({ ...validPackageV2, sets: [{ ...set, questions: [question] }] })
     expect(result.ok).toBe(false)
     if (!result.ok) expect(result.errors.join(' ')).toContain(errorFragment)
   })
