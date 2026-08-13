@@ -4,14 +4,18 @@ import { resolve } from 'node:path'
 describe('desktop packaging configuration', () => {
   it('targets a Windows NSIS installer with matching app versions', () => {
     const pkg = JSON.parse(readFileSync(resolve('package.json'), 'utf8')) as { version: string; scripts: Record<string, string> }
+    const runtime = readFileSync(resolve('src/platform/runtime.ts'), 'utf8')
+    const cargo = readFileSync(resolve('src-tauri/Cargo.toml'), 'utf8')
     const config = JSON.parse(readFileSync(resolve('src-tauri/tauri.conf.json'), 'utf8')) as {
       version: string
       build: { frontendDist: string; beforeBuildCommand: string; devUrl: string }
       bundle: { targets: string[]; createUpdaterArtifacts?: boolean }
       plugins?: { updater?: { pubkey?: string; endpoints?: string[]; windows?: { installMode?: string } } }
     }
-    expect(pkg.version).toBe('0.9.9')
+    expect(pkg.version).toBe('0.9.10')
     expect(config.version).toBe(pkg.version)
+    expect(runtime).toContain(`APP_VERSION = '${pkg.version}'`)
+    expect(cargo).toContain(`version = "${pkg.version}"`)
     expect(config.bundle.targets).toContain('nsis')
     expect(config.build.frontendDist).toBe('../dist')
     expect(pkg.scripts['desktop:build']).toContain('tauri build')
@@ -56,9 +60,14 @@ describe('desktop packaging configuration', () => {
     expect(workflow).toContain('tauri.ci-signing.conf.json')
     expect(workflow).toContain('updaterJsonPreferNsis: true')
     expect(workflow).toContain('releaseDraft: false')
-    expect(workflow).toContain('releaseAssetNamePattern: IELTS-Pilot-[version]-Windows-[arch]-Setup.[ext]')
+    expect(workflow).toContain('uses: actions/checkout@v7')
+    expect(workflow).toContain('uses: actions/setup-node@v7')
+    expect(workflow).toContain('uses: tauri-apps/tauri-action@v1')
+    expect(workflow).toContain('retryAttempts: 3')
+    expect(workflow).not.toContain('releaseAssetNamePattern:')
+    expect(workflow).not.toContain('assetNamePattern:')
     expect(workflow).toContain('src-tauri/tauri.release.conf.json')
-    expect(readme).toContain('https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.9/IELTS.Pilot_0.9.9_x64-setup.exe')
+    expect(readme).toContain('https://github.com/XiaoZheBrother/IELTS-pilot/releases/download/v0.9.10/IELTS.Pilot_0.9.10_x64-setup.exe')
   })
 
   it('routes desktop writing assessment through a rustls HTTPS command without embedded credentials', () => {

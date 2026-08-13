@@ -4,7 +4,7 @@ import AboutView from '../../src/views/AboutView.vue'
 describe('AboutView', () => {
   it('shows version, runtime and reference attribution', () => {
     const wrapper = mount(AboutView)
-    expect(wrapper.text()).toContain('0.9.9')
+    expect(wrapper.text()).toContain('0.9.10')
     expect(wrapper.text()).toContain('浏览器')
     expect(wrapper.text()).toContain('IELTS-practice')
     expect(wrapper.get('a[href="https://github.com/sallowayma-git/IELTS-practice"]')).toBeTruthy()
