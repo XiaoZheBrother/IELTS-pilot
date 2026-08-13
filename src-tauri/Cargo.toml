@@ -3,6 +3,7 @@ name = "ielts-pilot"
 version = "0.9.10"
 description = "A local-first IELTS reading and writing practice studio"
 authors = ["XiaoZheBrother"]
+license = "MIT"
 edition = "2021"
 
 [lib]

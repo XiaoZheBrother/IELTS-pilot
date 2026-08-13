@@ -182,6 +182,16 @@ src-tauri/          # Tauri 2 Rust 壳、权限与 NSIS 配置
 
 正式公开发布前，维护者仍应根据目标地区、内容来源和商业模式进行独立的许可证与法律审查。
 
+## 开源许可与项目政策
+
+- 软件源代码、构建脚本和测试代码采用 [MIT](LICENSE)；
+- 项目原创的文章、题目、解析和写作材料采用 [CC BY 4.0](CONTENT-LICENSE.md)；
+- 用户导入、内容源安装和本地转换的第三方材料继续遵循其原始许可，不属于上述授权范围；
+- 数据处理与可选网络请求见 [隐私政策](PRIVACY.md)；
+- Windows 发布来源、维护者角色和 SignPath 申请状态见 [代码签名政策](CODE_SIGNING_POLICY.md)。
+
+当前 Authenticode 尚未启用；代码签名政策中的 SignPath 说明是申请与接入计划，不代表现有安装包已经签名。
+
 ## 路线图边界
 
 v0.1 至 v0.9.10 完成情况见 [ROADMAP.md](docs/ROADMAP.md)。托管账号服务、商业 Authenticode 证书、听力、词汇 SRS、口语 AI 辅助反馈、官方评分和付费能力不在本里程碑内。

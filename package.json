@@ -2,6 +2,7 @@
   "name": "ielts-pilot",
   "private": true,
   "version": "0.9.10",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
