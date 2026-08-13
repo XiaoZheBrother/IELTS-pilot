@@ -45,5 +45,12 @@
 - [x] Run `npm run check`.
 - [x] Run `cargo check --manifest-path src-tauri/Cargo.toml`.
 - [x] Review `git diff --check`, status, and the complete staged diff for secrets.
-- [ ] Commit as `fix: AI harden Windows release pipeline`.
-- [ ] Push `main`, create and push annotated tag `v0.9.10`, then verify the GitHub Actions run and all three required release assets.
+- [x] Commit as `fix: AI harden Windows release pipeline`.
+- [x] Push `main`, create and push annotated tag `v0.9.10`, then verify the GitHub Actions run and all three required release assets.
+
+## Verification evidence
+
+- Commit: `6a8a76600fe56d058152262d328f6fed66a44f77`
+- Workflow: `https://github.com/XiaoZheBrother/IELTS-pilot/actions/runs/31662379566` (`success`)
+- Release: `https://github.com/XiaoZheBrother/IELTS-pilot/releases/tag/v0.9.10`
+- Assets verified: `IELTS Pilot_0.9.10_x64-setup.exe`, its updater `.sig`, and `latest.json`

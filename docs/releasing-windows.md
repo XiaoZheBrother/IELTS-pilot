@@ -49,6 +49,8 @@ GitHub Actions 支持以下附加 secrets：
 
 流水线只在证书存在时导入证书、读取 thumbprint 并生成临时 Tauri 配置。证书缺失时仍会产生 updater 签名的 NSIS 包，但 Windows SmartScreen 可能显示“未知发布者”。SSL 证书不能用于代码签名；时间戳服务和证书要求应以证书签发机构文档为准。
 
+`WINDOWS_CERTIFICATE` 方案只适用于允许导出 PFX 私钥的证书。当前公开信任代码签名证书通常要求私钥保存在硬件令牌或云端 HSM，不能直接导出成 PFX；选择这类服务后，需要把服务商的远程签名步骤接入 GitHub Actions，再上传已经完成 Authenticode 签名的安装器。不要尝试把硬件或云端私钥复制进仓库 secrets。
+
 ## 发布检查
 
 1. 同步 `package.json`、`src-tauri/Cargo.toml` 和 `src-tauri/tauri.conf.json` 版本。
